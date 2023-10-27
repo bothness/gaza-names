@@ -1,6 +1,6 @@
 import Tooltip from './Tooltip.svelte';
 
-const tooltip = (element, options = {pos: "top"}) => {
+const tooltip = (element, options = {pos: "bottom"}) => {
 	let title;
 	let tooltipComponent;
 	

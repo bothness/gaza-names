@@ -7,6 +7,8 @@
 	const sheet = "https://docs.google.com/spreadsheets/d/1PqAxz42cbTNnPijSzAcY83aZzjqKbOXivR4iO9LKGno/gviz/tq?tqx=out:csv&amp;gid=0"
 
 	let data;
+	let w;
+	$: h = data && w ? (data.length * 150) / w : 500;
 
 	function rand() {
 	  let u = 0, v = 0;
@@ -45,30 +47,37 @@
 <h1>Remember their names</h1>
 {#if data}
 <p class="subtitle">{data.length.toLocaleString()} people killed in Gaza, 7 Oct - 26 Oct 2023</p>
-<svg viewBox="0 0 100 100">
-	{#each data as d}
-		<path
-			d="{people[d.path[0]][d.path[1]]}"
-			transform="translate({d.x * 100} {d.y * 100 - 2}) scale({Math.floor(Math.random() * 2) === 0 ? "-" : ""}0.02 0.02)"
-			title="{d["Name in English"]}<br/>{d["Sex in English"]}, {d["Age"]} {d["Age"] === 1 ? "year" : "years"} old"
-			use:tooltip/>
-	{/each}
-</svg>
+<div class="container" bind:clientWidth={w}>
+	<svg viewBox="0 0 {w || 500} {h || 500}">
+		{#each data as d (d["مسلسل"])}
+			<path
+				d="{people[d.path[0]][d.path[1]]}"
+				transform="translate({d.x * w} {d.y * h - 20}) scale({Math.floor(Math.random() * 2) === 0 ? "-" : ""}0.2 0.2)"
+				title="{d["Name in English"]}<br/>{d["Sex in English"]}, {d["Age"]} {d["Age"] === 1 ? "year" : "years"} old"
+				use:tooltip/>
+		{/each}
+	</svg>
+</div>
 {/if}
 
 <style>
 	:global(body) {
 		/* background: darkred;
 		color: white; */
+		box-sizing: border-box;
 	}
 	h1 {
 		font-size: 3em;
 		margin: 0;
+		line-height: 0.9;
 	}
 	.subtitle {
 		display: block;
-		font-size: 1.4em;
-		margin: -8px 0 12px;
+		font-size: 1.3em;
+		margin: 4px 0 12px;
+	}
+	.container {
+		width: 100%;
 	}
 	svg {
 		width: 100%;
