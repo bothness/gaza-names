@@ -98,6 +98,13 @@
 <svelte:window on:resize={checkNavLeft}/>
 
 <svelte:head>
+	<title>{t("title")}</title>
+	<meta name="description" content="{t("subtitle")}">
+	<meta property="og:description" content="{t("subtitle")}">
+	<meta property="og:type" content="website"><link rel="canonical" href="{domain}{base}/{lang}/">
+	<meta property="og:url" content="{domain}{base}/{lang}/"><meta name="twitter:card" content="summary_large_image">
+	<meta property="og:image" content="{domain}{base}/img/og.png">
+	<meta property="og:title" content="{t("title")}">
 	{#if lang === 'ar'}
 		<style>
 			body {
