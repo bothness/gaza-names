@@ -21,6 +21,7 @@
 
 <style>
 	.tooltip {
+		z-index: 10;
 		position: absolute;
 		background: #333;
 		color: white;

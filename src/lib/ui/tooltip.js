@@ -1,6 +1,8 @@
 import Tooltip from './Tooltip.svelte';
 
 const tooltip = (element, options) => {
+	if (options?.ignore) return;
+
 	let title;
 	let tooltipComponent;
 	
