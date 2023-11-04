@@ -1,4 +1,5 @@
 <script>
+  import "../app.css";
   import { onMount } from "svelte";
   import { base } from "$app/paths";
   import { goto } from "$app/navigation";
@@ -8,3 +9,5 @@
     goto(`${base}/${lang === "ar" ? "ar" : "en"}/`);
   });
 </script>
+
+<a href="{base}/en/">Redirecting...</a>

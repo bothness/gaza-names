@@ -1,8 +1,10 @@
 <script>
 	import '../../app.css';
+	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { domain } from '$lib/data/config';
+	import getData from '$lib/js/get-data';
 	import people from '$lib/data/people';
 	import tooltip from '$lib/ui/tooltip';
 	import Icon from '$lib/ui/Icon.svelte';
@@ -10,20 +12,25 @@
 	import License from '$lib/ui/License.svelte';
 
 	export let data;
+	onMount(async () => {
+		data = Object.assign(data, await getData());
+		lo = data.min;
+		hi = data.max;
+	});
 
-	let lo = data.min;
-	let hi = data.max;
-	let w, nav, navLeft;
+	let lo;
+	let hi;
+	let w, width, nav, navLeft;
 	let filterText = '';
 	let showNames = false;
 	let showFilters = false;
 	let showModal = false;
 	let showShare = false;
 
-	$: h = w ? (data.people.length * 400) / w : 500;
+	$: h = w && data?.people ? (data.people.length * 400) / w : 500;
 
 	$: lang = data.lang;
-	$: t = (key) => (data.texts?.[key]?.[lang] ? data.texts[key][lang] : key);
+	$: t = (key) => (data?.texts?.[key]?.[lang] ? data.texts[key][lang] : key);
 	$: nameKey = lang === 'en' ? 'Name in English' : 'الاسم';
 	$: sexKey = lang === 'en' ? 'Sex in English' : 'الجنس';
 
@@ -55,7 +62,7 @@
 			if (person) lo = hi = person['Age'];
 		}
 	}
-	$: updateFilter(filterText, lo, hi);
+	$: data.people && updateFilter(filterText, lo, hi);
 
 	function doAges() {
 		if (lo < data.min) lo = data.min;
@@ -91,16 +98,18 @@
 
 	const checkNavLeft = (el) => {
 		if (el.target) el = nav;
-		navLeft = el.getBoundingClientRect().x < 100;
+		const rect = el.getBoundingClientRect();
+		navLeft = lang === "en" ? rect.left < 50 :
+			rect.right > width - 50;
 	};
 </script>
 
-<svelte:window on:resize={checkNavLeft}/>
+<svelte:window on:resize={checkNavLeft} bind:innerWidth={width}/>
 
 <svelte:head>
 	<title>{t("title")}</title>
-	<meta name="description" content="{t("subtitle")}">
-	<meta property="og:description" content="{t("subtitle")}">
+	<meta name="description" content="{t("description")}">
+	<meta property="og:description" content="{t("description")}">
 	<meta property="og:type" content="website"><link rel="canonical" href="{domain}{base}/{lang}/">
 	<meta property="og:url" content="{domain}{base}/{lang}/"><meta name="twitter:card" content="summary_large_image">
 	<meta property="og:image" content="{domain}{base}/img/og.png">
@@ -114,6 +123,7 @@
 	{/if}
 </svelte:head>
 
+{#if data?.people}
 {#if showModal}
 	<div class="mask">
 		<div class="modal-outer">
@@ -237,6 +247,11 @@
 	<a href="{domain}" title="{t("vp")}"><Logo/></a>
 	<a href="https://creativecommons.org/licenses/by-nc-nd/4.0/deed.{lang}" title="{t("license")}" target="_blank"><License/></a>
 </footer>
+{:else}
+<div class="mask">
+	<div class="spinner-border"/>
+</div>
+{/if}
 
 <style>
 	:global(*) {
