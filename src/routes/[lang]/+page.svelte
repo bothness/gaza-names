@@ -3,7 +3,8 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
-	import { domain } from '$lib/data/config';
+	import { page } from '$app/stores';
+	import { domain, texts } from '$lib/data/config';
 	import getData from '$lib/js/get-data';
 	import people from '$lib/data/people';
 	import tooltip from '$lib/ui/tooltip';
@@ -11,7 +12,7 @@
 	import Logo from '$lib/ui/Logo.svelte';
 	import License from '$lib/ui/License.svelte';
 
-	export let data;
+	let data = {texts: {...texts}};
 	onMount(async () => {
 		data = Object.assign(data, await getData());
 		lo = data.min;
@@ -28,8 +29,7 @@
 	let showShare = false;
 
 	$: h = w && data?.people ? (data.people.length * 400) / w : 500;
-
-	$: lang = data.lang;
+	$: lang = $page ? $page?.params?.lang : "en";
 	$: t = (key) => (data?.texts?.[key]?.[lang] ? data.texts[key][lang] : key);
 	$: nameKey = lang === 'en' ? 'Name in English' : 'الاسم';
 	$: sexKey = lang === 'en' ? 'Sex in English' : 'الجنس';
@@ -297,7 +297,10 @@
 	}
 	.footer {
 		margin-top: 36px;
-		padding-bottom: 8px;
+		padding-bottom: 4px;
+	}
+	.footer > a {
+		margin-bottom: 4px;
 	}
 	.header > div {
 		min-width: 350px;

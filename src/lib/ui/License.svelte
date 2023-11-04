@@ -19,7 +19,7 @@
 
 <style>
   svg {
-    height: 26px;
+    height: 24px;
   }
   svg path, svg rect {
     fill: #222;
