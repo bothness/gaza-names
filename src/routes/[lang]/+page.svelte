@@ -266,7 +266,7 @@
 		cursor: pointer;
 	}
 	.mask {
-		z-index: 10;
+		z-index: 20;
 		position: fixed;
 		left: 0;
 		right: 0;
