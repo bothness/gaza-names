@@ -1,6 +1,6 @@
 import { quadtree } from "d3-quadtree";
 
-export default function makePoints(count, numCandidates = 10) {
+export default function makePoints(count, numCandidates = 20) {
 	const pt = [Math.random(), Math.random()];
 	const points = [pt];
 	const qt = quadtree().extent([[0, 0], [1, 1]]).add(pt);
