@@ -6,7 +6,7 @@
 
   onMount(() => {
     const lang = navigator.language.split("-")[0];
-    goto(`${base}/${lang === "ar" ? "ar" : "en"}/`);
+    goto(`${base}/${lang === "ar" ? "ar" : "en"}.html`);
   });
 </script>
 

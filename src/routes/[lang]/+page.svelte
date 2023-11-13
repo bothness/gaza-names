@@ -178,7 +178,7 @@
 			>
 			{#key lang}<button
 					title={t('language')}
-					on:click={() => goto(`${base}/${lang === 'en' ? 'ar' : 'en'}/`)}
+					on:click={() => goto(`${base}/${lang === 'en' ? 'ar' : 'en'}.html`)}
 					use:tooltip><span>{lang === 'en' ? 'ع' : 'en'}</span></button
 				>{/key}
 		</div>
