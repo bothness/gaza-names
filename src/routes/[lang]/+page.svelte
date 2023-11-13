@@ -28,8 +28,14 @@
 	let showModal = false;
 	let showShare = false;
 
+	function getLang(page) {
+		const param = page?.params?.lang;
+		if (typeof param === "string") return param.slice(0, 2);
+		return "en";
+	}
+
 	$: h = w && data?.people ? (data.people.length * 400) / w : 500;
-	$: lang = $page ? $page?.params?.lang : "en";
+	$: lang = getLang($page);
 	$: t = (key) => (data?.texts?.[key]?.[lang] ? data.texts[key][lang] : key);
 	$: nameKey = lang === 'en' ? 'Name in English' : 'الاسم';
 	$: sexKey = lang === 'en' ? 'Sex in English' : 'الجنس';
