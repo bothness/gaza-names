@@ -1,7 +1,7 @@
 <script>
 	import '../../app.css';
 	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
+	import { goto, onNavigate } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { page } from '$app/stores';
 	import { domain, texts } from '$lib/data/config';
@@ -18,6 +18,14 @@
 		lo = data.min;
 		hi = data.max;
 	});
+
+	onNavigate(async (event, resolve) => {
+		const lang = event.to.url.pathname.startsWith('/ar') ? 'ar' : 'en';
+		const dir = event.to.url.pathname.startsWith('/ar') ? 'rtl' : 'ltr';
+		document.documentElement.setAttribute('lang', lang);
+		document.documentElement.setAttribute('dir', dir);
+		return resolve;
+	})
 
 	let lo;
 	let hi;
@@ -178,6 +186,8 @@
 			>
 			{#key lang}<button
 					title={t('language')}
+					lang={lang === 'en' ? 'ar' : 'en'}
+					dir={lang === 'en' ? 'rtl' : 'ltr'}
 					on:click={() => goto(`${base}/${lang === 'en' ? 'ar' : 'en'}.html`)}
 					use:tooltip><span>{lang === 'en' ? 'ع' : 'en'}</span></button
 				>{/key}
