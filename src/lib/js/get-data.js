@@ -1,7 +1,7 @@
 import { csvParse, autoType } from "d3-dsv";
 import makePoints from "./make-points";
 
-const database = "https://docs.google.com/spreadsheets/d/1PqAxz42cbTNnPijSzAcY83aZzjqKbOXivR4iO9LKGno/gviz/tq?tqx=out:csv";
+const database = "https://docs.google.com/spreadsheets/d/1PqAxz42cbTNnPijSzAcY83aZzjqKbOXivR4iO9LKGno/export?format=csv";
 
 function getPath(age, sex) {
   const i = Math.floor(Math.random() * 6);
@@ -14,18 +14,18 @@ function getPath(age, sex) {
 }
 
 export default async function getData() {
-  const content_raw = csvParse(await (await fetch(`${database}&sheet=content`)).text(), autoType);
+  const content_raw = csvParse(await (await fetch(`${database}&gid=849504288`)).text(), autoType);
   const texts = {};
   const meta = {};
   for (const c of content_raw) {
     if (c.value) meta[c.key] = c.value;
     else texts[c.key] = {en: c.en, ar: c.ar};
   }
-  const people_raw = csvParse(await (await fetch(`${database}&sheet=data`)).text(), autoType);
+  const people_raw = csvParse(await (await fetch(`${database}&gid=0`)).text(), autoType);
   const points = makePoints(people_raw.length);
   let min = 0, max = 0;
   const people = people_raw.map((d, i) => {
-    if (!d["Age"]) d["Age"] = 0;
+    if (!d["Age"] || typeof d["Age"] === "string") d["Age"] = 0;
     if (d["Age"] === 1823) d["Age"] = 23;
     max = Math.max(max, d["Age"]);
     return {
@@ -35,5 +35,6 @@ export default async function getData() {
       flip: Math.round(Math.random())
     };
   });
+  console.log(people);
   return { meta, texts, people, min, max };
 }

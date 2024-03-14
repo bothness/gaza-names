@@ -1,7 +1,7 @@
 <script>
 	import '../../app.css';
 	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
+	import { goto, afterNavigate } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { page } from '$app/stores';
 	import { domain, texts } from '$lib/data/config';
@@ -108,6 +108,11 @@
 		navLeft = lang === "en" ? rect.left < 50 :
 			rect.right > width - 50;
 	};
+
+	afterNavigate(() => {
+		document.documentElement.setAttribute('lang', lang);
+		document.documentElement.setAttribute('dir', lang === "ar" ? "rtl" : "ltr");
+	});
 </script>
 
 <svelte:window on:resize={checkNavLeft} bind:innerWidth={width}/>
@@ -117,7 +122,8 @@
 	<meta name="description" content="{t("description")}">
 	<meta property="og:description" content="{t("description")}">
 	<meta property="og:type" content="website"><link rel="canonical" href="{domain}{base}/{lang}/">
-	<meta property="og:url" content="{domain}{base}/{lang}/"><meta name="twitter:card" content="summary_large_image">
+	<meta property="og:url" content="{domain}{base}/{lang}/">
+	<meta name="twitter:card" content="summary_large_image">
 	<meta property="og:image" content="{domain}{base}/img/og.png">
 	<meta property="og:title" content="{t("title")}">
 	{#if lang === 'ar'}
@@ -149,6 +155,7 @@
 		<h1>{t('title')}</h1>
 		<p class="subtitle">
 			{data.people.length.toLocaleString()}
+			{#if data.people.length < data.meta.total_killed}{t('out_of')} {data.meta.total_killed.toLocaleString()}{/if}
 			{t('subtitle')}, <span style:white-space="nowrap">{makeDateRange(data.meta, lang)}</span>
 		</p>
 	</div>
@@ -178,6 +185,7 @@
 			>
 			{#key lang}<button
 					title={t('language')}
+					lang={lang === 'en' ? 'ar' : 'en'}
 					on:click={() => goto(`${base}/${lang === 'en' ? 'ar' : 'en'}.html`)}
 					use:tooltip><span>{lang === 'en' ? 'ع' : 'en'}</span></button
 				>{/key}
