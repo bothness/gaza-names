@@ -462,10 +462,10 @@
 		margin-inline-start: 4px;
 	}
 	button.modal-close {
-		float: right;
+		float: inline-end;
 		background: none;
 		border: none;
-		margin-left: 6px;
+		margin-inline-start: 6px;
 		padding: 0;
 		font-size: larger;
 		color: white;
