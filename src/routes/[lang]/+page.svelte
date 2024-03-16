@@ -154,13 +154,13 @@
 {/if}
 
 {#if selected}
-	<Tooltip {width} x={(selected.pos.left + selected.pos.right) / 2} y={selected.pos.bottom + window.scrollY} pos="bottom">
+	<Tooltip width={w + 24} x={(selected.pos.left + selected.pos.right) / 2} y={selected.pos.bottom + window.scrollY} pos="bottom">
 		<strong>{selected.d[nameKey]}</strong><button on:click={() => selected = null} class="modal-close" title="{t('close')}"><Icon type="close"/></button><br/>
 		{selected.d[sexKey]}, {selected.d['Age']} {selected.d['Age'] === 1 ? t('year_old') : t('years_old')}
 	</Tooltip>
 {/if}
 {#if hovered && hovered.d['مسلسل'] !== selected?.d['مسلسل']}
-	<Tooltip {width} x={(hovered.pos.left + hovered.pos.right) / 2} y={hovered.pos.bottom + window.scrollY} pos="bottom">
+	<Tooltip width={w + 24} x={(hovered.pos.left + hovered.pos.right) / 2} y={hovered.pos.bottom + window.scrollY} pos="bottom">
 		<strong>{hovered.d[nameKey]}</strong><br/>
 		{hovered.d[sexKey]}, {hovered.d['Age']} {hovered.d['Age'] === 1 ? t('year_old') : t('years_old')}
 	</Tooltip>
