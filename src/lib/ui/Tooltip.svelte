@@ -1,5 +1,5 @@
 <script>
-	export let title;
+	export let title = '';
 	export let x;
 	export let y;
 	export let width;
@@ -12,12 +12,10 @@
 	$: xPos = w && x + (w / 2) > width - xPad ? width - (w / 2) - xPad : w && x - (w / 2) < 0 + xPad ? (w / 2) + xPad : x;
 </script>
 
-{#if title}
 <div class="tooltip" style:top="{y}px" style:left="{xPos}px" bind:clientWidth={w} style:transform="translate(-50%,{pos === 'top' ? 'calc(-100% - 6px)' : '6px'})">
-  {@html title}
+  <slot>{@html title || ''}</slot>
   <div class="caret" class:caret-bottom={pos == 'bottom'} class:caret-top={pos == 'top'} style:transform="translateX({(w / x) + (x - xPos)}px)"></div>
 </div>
-{/if}
 
 <style>
 	.tooltip {
@@ -29,7 +27,7 @@
 		padding: 4px;
     font-size: 0.85em;
     white-space: nowrap;
-		pointer-events: none;
+		/* pointer-events: none; */
 	}
 	.caret {
 		content: " ";

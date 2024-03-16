@@ -4,10 +4,12 @@
   import { base } from "$app/paths";
   import { goto } from "$app/navigation";
 
+  let lang = "en";
+
   onMount(() => {
-    const lang = navigator.language.split("-")[0];
+    lang = navigator.language.split("-")[0];
     goto(`${base}/${lang === "ar" ? "ar" : "en"}.html`);
   });
 </script>
 
-<a href="{base}/en/">Redirecting...</a>
+<a href="{base}/{lang}.html">Redirecting...</a>

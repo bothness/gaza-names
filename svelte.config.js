@@ -13,7 +13,7 @@ const config = {
 		}),
 		prerender: {
 			handleHttpError: 'warn',
-			entries: ["/", "/en", "/ar"]
+			entries: ["/", "/en.html", "/ar.html"]
 		},
 		paths: {
 			base: production ? '/gaza-names' : '',

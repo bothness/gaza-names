@@ -8,9 +8,11 @@
 	import getData from '$lib/js/get-data';
 	import people from '$lib/data/people';
 	import tooltip from '$lib/ui/tooltip';
+	import Tooltip from '$lib/ui/Tooltip.svelte';
 	import Icon from '$lib/ui/Icon.svelte';
 	import Logo from '$lib/ui/Logo.svelte';
 	import License from '$lib/ui/License.svelte';
+	import Page from '../+page.svelte';
 
 	let data = {texts: {...texts}};
 	onMount(async () => {
@@ -27,6 +29,7 @@
 	let showFilters = false;
 	let showModal = false;
 	let showShare = false;
+	let hovered, selected;
 
 	function getLang(page) {
 		const param = page?.params?.lang;
@@ -140,7 +143,7 @@
 	<div class="mask">
 		<div class="modal-outer">
 			<div class="modal-inner">
-				<button on:click={() => (showModal = false)} class="button-close" title="Close this"
+				<button on:click={() => (showModal = false)} class="button-close" title="{t('close')}"
 					><Icon type="close" /></button
 				>
 				<h2>{t('about')}</h2>
@@ -148,6 +151,19 @@
 			</div>
 		</div>
 	</div>
+{/if}
+
+{#if selected}
+	<Tooltip {width} x={(selected.pos.left + selected.pos.right) / 2} y={selected.pos.bottom + window.scrollY} pos="bottom">
+		<strong>{selected.d[nameKey]}</strong><button on:click={() => selected = null} class="modal-close" title="{t('close')}"><Icon type="close"/></button><br/>
+		{selected.d[sexKey]}, {selected.d['Age']} {selected.d['Age'] === 1 ? t('year_old') : t('years_old')}
+	</Tooltip>
+{/if}
+{#if hovered && hovered.d['مسلسل'] !== selected?.d['مسلسل']}
+	<Tooltip {width} x={(hovered.pos.left + hovered.pos.right) / 2} y={hovered.pos.bottom + window.scrollY} pos="bottom">
+		<strong>{hovered.d[nameKey]}</strong><br/>
+		{hovered.d[sexKey]}, {hovered.d['Age']} {hovered.d['Age'] === 1 ? t('year_old') : t('years_old')}
+	</Tooltip>
 {/if}
 
 <header class="header">
@@ -173,7 +189,7 @@
 				>{/key}
 			{#key showNames}<button
 					title={showNames ? t('show_people') : t('show_names')}
-					on:click={() => (showNames = !showNames)}
+					on:click={() => {showNames = !showNames; selected = null}}
 					use:tooltip><Icon type={showNames ? 'person' : 'abc'} /></button
 				>{/key}
 			<button title={t('about')} on:click={() => (showModal = true)} use:tooltip
@@ -227,8 +243,11 @@
 		<div class="columns">
 			{#each data.people as d (d['مسلسل'])}
 				<span
-					style:color={d.hidden === true ? 'rgba(0,0,0,0.1)' : 'darkred'}
-					on:click={() => doSelect(d)}
+					style:color={d['مسلسل'] === selected?.d?.['مسلسل'] ? 'black' : d.hidden === true ? 'rgba(0,0,0,0.1)' : 'rgba(139,0,0,1)'}
+					style:-webkit-text-stroke={d['مسلسل'] === selected?.d?.['مسلسل'] ? '1px #222' : '0'}
+					on:click={(e) => selected = {d, pos: e.target.getBoundingClientRect()}}
+					on:mouseover={(e) => hovered	 = {d, pos: e.target.getBoundingClientRect()}}
+					on:mouseout={() => hovered = null}
 				>
 					{d[nameKey]}
 				</span>
@@ -242,14 +261,11 @@
 						d={people[d.path[0]][d.path[1]]}
 						transform="translate({d.x * w - 35} {d.y * h - 71}) scale({d.flip ? '-' : ''}0.3 0.3)"
 						transform-origin="35 71"
-						fill={d.hidden === true ? 'rgba(0,0,0,0.1)' : 'darkred'}
-						use:tooltip={{
-							title: `${d[nameKey]}<br/>${d[sexKey]}, ${d['Age']} ${
-								d['Age'] === 1 ? t('year_old') : t('years_old')
-							}`,
-							ignore: d.hidden
-						}}
-						on:click={() => doSelect(d)}
+						fill={d['مسلسل'] === selected?.d?.['مسلسل'] ? 'black' : d.hidden === true ? 'rgba(0,0,0,0.05)' : 'rgba(139,0,0,0.5)'}
+						style:pointer-events={d.hidden ? 'none' : 'all'}
+						on:click={(e) => selected = {d, pos: e.target.getBoundingClientRect()}}
+						on:mouseover={(e) => hovered = {d, pos: e.target.getBoundingClientRect()}}
+						on:mouseout={() => hovered = null}
 					/>
 				{/each}
 			{/key}
@@ -393,12 +409,8 @@
 		width: 100%;
 		overflow: visible;
 	}
-	svg > path {
-		opacity: 0.5;
-	}
 	svg > path:hover {
 		fill: #222;
-		opacity: 1;
 	}
 	input[type='text'] {
 		width: auto;
@@ -448,5 +460,17 @@
 	.tray > input[type=number], .tray > span {
 		display: inline-block;
 		margin-inline-start: 4px;
+	}
+	button.modal-close {
+		float: right;
+		background: none;
+		border: none;
+		margin-left: 6px;
+		padding: 0;
+		font-size: larger;
+		color: white;
+	}
+	button.modal-close:hover {
+		color: #ccc;
 	}
 </style>
