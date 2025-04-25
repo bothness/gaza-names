@@ -5,7 +5,7 @@
 	import { base } from '$app/paths';
 	import { page } from '$app/stores';
 	import { domain, texts } from '$lib/data/config';
-	import getData from '$lib/js/get-data';
+	import { getData, FIGURE_WIDTH, FIGURE_HEIGHT } from '$lib/js/get-data';
 	import people from '$lib/data/people';
 	import tooltip from '$lib/ui/tooltip';
 	import Tooltip from '$lib/ui/Tooltip.svelte';
@@ -14,11 +14,30 @@
 	import License from '$lib/ui/License.svelte';
 	import Page from '../+page.svelte';
 
+
+	const FIGURE_DRAW_WIDTH = 20
+	const FIGURE_DRAW_HEIGHT = 40
+
 	let data = {texts: {...texts}};
+	let figuresImg = null
 	onMount(async () => {
-		data = Object.assign(data, await getData());
 		lo = data.min;
 		hi = data.max;
+
+		Promise.all([
+			new Promise(resolve => {
+				return getData()
+					.then(r => data = Object.assign(data, r))
+					.then(() => resolve())
+			}),
+			new Promise(resolve => {
+				loadFiguresImg()
+					.then(r => figuresImg = r)
+					.then(() => resolve())
+			})
+		]).then(() => {
+			loadCanvas(data, figuresImg)
+		})
 	});
 
 	let lo;
@@ -40,8 +59,7 @@
 	$: h = w && data?.people ? (data.people.length * 400) / w : 500;
 	$: lang = getLang($page);
 	$: t = (key) => (data?.texts?.[key]?.[lang] ? data.texts[key][lang] : key);
-	$: nameKey = lang === 'en' ? 'Name in English' : 'الاسم';
-	$: sexKey = lang === 'en' ? 'Sex in English' : 'الجنس';
+	$: nameKey = lang === 'en' ? 'name' : 'name_ar';
 
 	const formatParagraphs = (text) =>
 		text
@@ -57,8 +75,8 @@
 				(!filterText ||
 					(data.people[i][nameKey] &&
 						data.people[i][nameKey].match(new RegExp(`${filterText}`, 'i')))) &&
-				data.people[i]['Age'] >= lo &&
-				data.people[i]['Age'] <= hi
+				data.people[i]['age'] >= lo &&
+				data.people[i]['age'] <= hi
 			) {
 				hidden = false;
 				count += 1;
@@ -68,12 +86,12 @@
 		}
 		if (count === 1) {
 			const person = data.people.find(d => d[nameKey] === filterText);
-			if (person) lo = hi = person['Age'];
+			if (person) lo = hi = person['age'];
 		}
 	}
 	$: data.people && updateFilter(filterText, lo, hi);
 
-	function doAges() {
+	function doages() {
 		if (lo < data.min) lo = data.min;
 		if (lo > hi) lo = hi;
 		if (hi > data.max) hi = data.max;
@@ -89,7 +107,7 @@
 
 	function doSelect(d) {
 		filterText = d[nameKey];
-		lo = hi = d['Age'];
+		lo = hi = d['age'];
 		showFilters = true;
 	}
 
@@ -116,6 +134,43 @@
 		document.documentElement.setAttribute('lang', lang);
 		document.documentElement.setAttribute('dir', lang === "ar" ? "rtl" : "ltr");
 	});
+
+	const loadFiguresImg = async () => {
+
+		const figures = new Image()
+		figures.src = `./img/figures.png`
+
+		await Promise.all(
+			Array.from(document.images).map(
+				(image) =>
+					new Promise((resolve) => image.addEventListener("load", resolve)),
+			),
+		);
+
+		return figures
+	}
+
+	const loadCanvas = async (data, figuresImg) => {
+
+		const maxX = w - FIGURE_DRAW_WIDTH
+		const maxY = h - FIGURE_DRAW_HEIGHT
+
+		const ctx = document.getElementById('names-canvas').getContext('2d')
+
+		data.people.forEach((person, i) => {
+			ctx.drawImage(
+				figuresImg,
+				person.imageXY.x,
+				person.imageXY.y,
+				FIGURE_WIDTH,
+				FIGURE_HEIGHT,
+				Math.floor(person.x * maxX),
+				Math.floor(person.y * maxY),
+				FIGURE_DRAW_WIDTH,
+				FIGURE_DRAW_HEIGHT
+			)
+		})
+	}
 </script>
 
 <svelte:window on:resize={checkNavLeft} bind:innerWidth={width}/>
@@ -156,13 +211,13 @@
 {#if selected}
 	<Tooltip width={w + 24} x={(selected.pos.left + selected.pos.right) / 2} y={selected.pos.bottom + window.scrollY} pos="bottom">
 		<strong>{selected.d[nameKey]}</strong><button on:click={() => selected = null} class="modal-close" title="{t('close')}"><Icon type="close"/></button><br/>
-		{selected.d[sexKey]}, {selected.d['Age']} {selected.d['Age'] === 1 ? t('year_old') : t('years_old')}
+		{selected.d[sexKey]}, {selected.d['age']} {selected.d['age'] === 1 ? t('year_old') : t('years_old')}
 	</Tooltip>
 {/if}
-{#if hovered && hovered.d['مسلسل'] !== selected?.d['مسلسل']}
+{#if hovered && hovered.d['index'] !== selected?.d['index']}
 	<Tooltip width={w + 24} x={(hovered.pos.left + hovered.pos.right) / 2} y={hovered.pos.bottom + window.scrollY} pos="bottom">
 		<strong>{hovered.d[nameKey]}</strong><br/>
-		{hovered.d[sexKey]}, {hovered.d['Age']} {hovered.d['Age'] === 1 ? t('year_old') : t('years_old')}
+		{hovered.d[sexKey]}, {hovered.d['age']} {hovered.d['age'] === 1 ? t('year_old') : t('years_old')}
 	</Tooltip>
 {/if}
 
@@ -222,9 +277,9 @@
 					{/each}
 				</datalist>
 				<span>{t("aged")}</span>
-				<input type="number" bind:value={lo} min={data.min} max={hi} on:change={doAges} />
+				<input type="number" bind:value={lo} min={data.min} max={hi} on:change={doages} />
 				<span>{t("to")}</span>
-				<input type="number" bind:value={hi} min={lo} max={data.max} on:change={doAges} />
+				<input type="number" bind:value={hi} min={lo} max={data.max} on:change={doages} />
 				<!-- <button on:click={resetFilters}>{t("reset")}</button> -->
 			</div>
 		{:else if showShare}
@@ -241,10 +296,10 @@
 <div class="container" bind:clientWidth={w}>
 	{#if showNames}
 		<div class="columns">
-			{#each data.people as d (d['مسلسل'])}
+			{#each data.people as d (d['index'])}
 				<span
-					style:color={d['مسلسل'] === selected?.d?.['مسلسل'] ? 'black' : d.hidden === true ? 'rgba(0,0,0,0.1)' : 'rgba(139,0,0,1)'}
-					style:-webkit-text-stroke={d['مسلسل'] === selected?.d?.['مسلسل'] ? '1px #222' : '0'}
+					style:color={d['index'] === selected?.d?.['index'] ? 'black' : d.hidden === true ? 'rgba(0,0,0,0.1)' : 'rgba(139,0,0,1)'}
+					style:-webkit-text-stroke={d['index'] === selected?.d?.['index'] ? '1px #222' : '0'}
 					on:click={(e) => selected = {d, pos: e.target.getBoundingClientRect()}}
 					on:mouseover={(e) => hovered	 = {d, pos: e.target.getBoundingClientRect()}}
 					on:mouseout={() => hovered = null}
@@ -254,14 +309,17 @@
 			{/each}
 		</div>
 	{:else if w}
-		<svg viewBox="0 0 {w || 500} {h || 500}">
+		<canvas id="names-canvas" width="{w || 500}" height="{h || 500}">
+
+		</canvas>
+		<!-- <svg viewBox="0 0 {w || 500} {h || 500}">
 			{#key lang}
-				{#each data.people as d (d['مسلسل'])}
+				{#each data.people as d (d['index'])}
 					<path
 						d={people[d.path[0]][d.path[1]]}
 						transform="translate({d.x * w - 35} {d.y * h - 71}) scale({d.flip ? '-' : ''}0.3 0.3)"
 						transform-origin="35 71"
-						fill={d['مسلسل'] === selected?.d?.['مسلسل'] ? 'black' : d.hidden === true ? 'rgba(0,0,0,0.05)' : 'rgba(139,0,0,0.5)'}
+						fill={d['index'] === selected?.d?.['index'] ? 'black' : d.hidden === true ? 'rgba(0,0,0,0.05)' : 'rgba(139,0,0,0.5)'}
 						style:pointer-events={d.hidden ? 'none' : 'all'}
 						on:click={(e) => selected = {d, pos: e.target.getBoundingClientRect()}}
 						on:mouseover={(e) => hovered = {d, pos: e.target.getBoundingClientRect()}}
@@ -269,7 +327,7 @@
 					/>
 				{/each}
 			{/key}
-		</svg>
+		</svg> -->
 	{/if}
 </div>
 
