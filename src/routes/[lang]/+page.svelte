@@ -13,13 +13,14 @@
 	import Logo from '$lib/ui/Logo.svelte';
 	import License from '$lib/ui/License.svelte';
 	import Page from '../+page.svelte';
+	import debounce from 'debounce';
 
 
 	const FIGURE_DRAW_WIDTH = 20
 	const FIGURE_DRAW_HEIGHT = 40
 
 	let data = {texts: {...texts}};
-	let figuresImg = null
+	let figureImages = null
 	onMount(async () => {
 		lo = data.min;
 		hi = data.max;
@@ -32,11 +33,11 @@
 			}),
 			new Promise(resolve => {
 				loadFiguresImg()
-					.then(r => figuresImg = r)
+					.then(r => figureImages = r)
 					.then(() => resolve())
 			})
 		]).then(() => {
-			loadCanvas(data, figuresImg)
+			loadCanvas(data, figureImages)
 		})
 	});
 
@@ -123,6 +124,11 @@
 		return `${start.join(" ")} - ${end.join(" ")}`;
 	}
 
+	const onResize = debounce((el) => {
+		checkNavLeft(el)
+		loadCanvas(data, figureImages)
+	}, 1000)
+
 	const checkNavLeft = (el) => {
 		if (el.target) el = nav;
 		const rect = el.getBoundingClientRect();
@@ -137,8 +143,11 @@
 
 	const loadFiguresImg = async () => {
 
-		const figures = new Image()
-		figures.src = `./img/figures.png`
+		const figure = new Image()
+		figure.src = `./img/figures.png`
+
+		const selected = new Image()
+		selected.src = `./img/figures-selected.png`
 
 		await Promise.all(
 			Array.from(document.images).map(
@@ -147,33 +156,105 @@
 			),
 		);
 
-		return figures
+		return {
+			figure,
+			selected
+		}
 	}
 
-	const loadCanvas = async (data, figuresImg) => {
+	const loadCanvas = async (data, figureImages) => {
 
 		const maxX = w - FIGURE_DRAW_WIDTH
 		const maxY = h - FIGURE_DRAW_HEIGHT
 
-		const ctx = document.getElementById('names-canvas').getContext('2d')
+		const canvas = document.getElementById('names-canvas')
+		const ctx = canvas.getContext('2d')
+		const canvasTooltip = document.getElementById('names-canvas-tooltip')
+		const ctxTooltip = canvasTooltip.getContext('2d')
+
+		ctx.reset()
 
 		data.people.forEach((person, i) => {
+			person.canvasX = Math.floor(person.x * maxX);
+			person.canvasY = Math.floor(person.y * maxY);
 			ctx.drawImage(
-				figuresImg,
+				figureImages.figure,
 				person.imageXY.x,
 				person.imageXY.y,
 				FIGURE_WIDTH,
 				FIGURE_HEIGHT,
-				Math.floor(person.x * maxX),
-				Math.floor(person.y * maxY),
+				person.canvasX,
+				person.canvasY,
 				FIGURE_DRAW_WIDTH,
 				FIGURE_DRAW_HEIGHT
 			)
 		})
+
+		const getTooltipPerson = (x, y) => {
+			const halfDistanceW = FIGURE_DRAW_WIDTH * 0.5
+			const halfDistanceH = FIGURE_DRAW_HEIGHT * 0.5
+			const persons = data.people
+				.filter(person => {
+					const xDistance = Math.abs(person.canvasX - x + halfDistanceW)
+					const yDistance = Math.abs(person.canvasY - y + halfDistanceH)
+					person.xDistance = xDistance
+					person.yDistance = yDistance
+					return xDistance <= halfDistanceW || yDistance < halfDistanceH
+				})
+				.map(person => {
+					person.distance = person.xDistance + person.yDistance
+					return person
+				})
+				.sort((a, b) => a.distance - b.distance)
+
+			if (persons.length) {
+				return persons[0]
+			}
+		}
+
+		const drawTooltip = (person) => {
+			ctxTooltip.reset()
+			if (!person) {
+				return
+			}
+			person.canvasX = Math.floor(person.x * maxX);
+			person.canvasY = Math.floor(person.y * maxY);
+			ctxTooltip.drawImage(
+				figureImages.selected,
+				person.imageXY.x,
+				person.imageXY.y,
+				FIGURE_WIDTH,
+				FIGURE_HEIGHT,
+				person.canvasX,
+				person.canvasY,
+				FIGURE_DRAW_WIDTH,
+				FIGURE_DRAW_HEIGHT
+			)
+		}
+
+		const trackHover = debounce((e) => {
+			const rect = canvas.getBoundingClientRect()
+			const x = e.clientX - rect.left
+			const y = e.clientY - rect.top
+			const width = rect.right - rect.left
+			const height = rect.bottom - rect.top
+			if (x < 0 || y > h) {
+				drawTooltip()
+				return
+			}
+			const person = getTooltipPerson(x, y)
+			if (person) {
+				drawTooltip(person)
+			}
+		}, 100)
+
+		document.addEventListener('mousemove', trackHover)
 	}
+
+
 </script>
 
-<svelte:window on:resize={checkNavLeft} bind:innerWidth={width}/>
+<svelte:window on:resize={onResize} bind:innerWidth={width}/>
 
 <svelte:head>
 	<title>{t("title")}</title>
@@ -309,25 +390,8 @@
 			{/each}
 		</div>
 	{:else if w}
-		<canvas id="names-canvas" width="{w || 500}" height="{h || 500}">
-
-		</canvas>
-		<!-- <svg viewBox="0 0 {w || 500} {h || 500}">
-			{#key lang}
-				{#each data.people as d (d['index'])}
-					<path
-						d={people[d.path[0]][d.path[1]]}
-						transform="translate({d.x * w - 35} {d.y * h - 71}) scale({d.flip ? '-' : ''}0.3 0.3)"
-						transform-origin="35 71"
-						fill={d['index'] === selected?.d?.['index'] ? 'black' : d.hidden === true ? 'rgba(0,0,0,0.05)' : 'rgba(139,0,0,0.5)'}
-						style:pointer-events={d.hidden ? 'none' : 'all'}
-						on:click={(e) => selected = {d, pos: e.target.getBoundingClientRect()}}
-						on:mouseover={(e) => hovered = {d, pos: e.target.getBoundingClientRect()}}
-						on:mouseout={() => hovered = null}
-					/>
-				{/each}
-			{/key}
-		</svg> -->
+		<canvas id="names-canvas" width="{w || 500}" height="{h || 500}"></canvas>
+		<canvas id="names-canvas-tooltip" width="{w || 500}" height="{h || 500}"></canvas>
 	{/if}
 </div>
 
@@ -444,6 +508,7 @@
 		margin: 4px 0 12px;
 	}
 	.container {
+		position: relative;
 		width: 100%;
 		margin-top: 12px;
 	}
@@ -530,5 +595,10 @@
 	}
 	button.modal-close:hover {
 		color: #ccc;
+	}
+	#names-canvas-tooltip {
+		position: absolute;
+		top: 0;
+		left: 0;
 	}
 </style>
