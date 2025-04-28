@@ -238,7 +238,7 @@
 			const y = e.clientY - rect.top
 			const width = rect.right - rect.left
 			const height = rect.bottom - rect.top
-			if (x < 0 || y > h) {
+			if (x < 0 | x > width || y > height || y < 0) {
 				drawTooltip()
 				return
 			}
