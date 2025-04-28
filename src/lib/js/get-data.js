@@ -26,7 +26,10 @@ function imageXY(age, sex) {
 
 export const getData = async () => {
   const content_raw = csvParse(await (await fetch(`${database}&gid=849504288`)).text(), autoType);
-  const texts = {};
+  const texts = {
+    female: {en: 'Female', ar: 'انثى'},
+    male: {en: 'Male', ar: 'Male'},
+  };
   const meta = {};
   for (const c of content_raw) {
     if (c.value) meta[c.key] = c.value;

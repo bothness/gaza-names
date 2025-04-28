@@ -50,6 +50,7 @@
 	let showModal = false;
 	let showShare = false;
 	let hovered, selected;
+	let tooltipPerson, tooltipX, tooltipY;
 
 	function getLang(page) {
 		const param = page?.params?.lang;
@@ -212,13 +213,16 @@
 			}
 		}
 
-		const drawTooltip = (person) => {
+		const drawTooltip = (person, x, y) => {
 			ctxTooltip.reset()
+			tooltipPerson = person
 			if (!person) {
 				return
 			}
 			person.canvasX = Math.floor(person.x * maxX);
 			person.canvasY = Math.floor(person.y * maxY);
+			tooltipX = person.canvasX + (FIGURE_DRAW_WIDTH * 0.5)
+			tooltipY = person.canvasY + FIGURE_DRAW_HEIGHT
 			ctxTooltip.drawImage(
 				figureImages.selected,
 				person.imageXY.x,
@@ -244,7 +248,7 @@
 			}
 			const person = getTooltipPerson(x, y)
 			if (person) {
-				drawTooltip(person)
+				drawTooltip(person, x, y)
 			}
 		}, 100)
 
@@ -287,19 +291,6 @@
 			</div>
 		</div>
 	</div>
-{/if}
-
-{#if selected}
-	<Tooltip width={w + 24} x={(selected.pos.left + selected.pos.right) / 2} y={selected.pos.bottom + window.scrollY} pos="bottom">
-		<strong>{selected.d[nameKey]}</strong><button on:click={() => selected = null} class="modal-close" title="{t('close')}"><Icon type="close"/></button><br/>
-		{selected.d[sexKey]}, {selected.d['age']} {selected.d['age'] === 1 ? t('year_old') : t('years_old')}
-	</Tooltip>
-{/if}
-{#if hovered && hovered.d['index'] !== selected?.d['index']}
-	<Tooltip width={w + 24} x={(hovered.pos.left + hovered.pos.right) / 2} y={hovered.pos.bottom + window.scrollY} pos="bottom">
-		<strong>{hovered.d[nameKey]}</strong><br/>
-		{hovered.d[sexKey]}, {hovered.d['age']} {hovered.d['age'] === 1 ? t('year_old') : t('years_old')}
-	</Tooltip>
 {/if}
 
 <header class="header">
@@ -390,6 +381,12 @@
 			{/each}
 		</div>
 	{:else if w}
+		{#if tooltipPerson}
+		<Tooltip width={w + 24} x={tooltipX} y={tooltipY} pos="bottom">
+			<strong>{tooltipPerson[nameKey]}</strong><button on:click={() => selected = null} class="modal-close" title="{t('close')}"><Icon type="close"/></button><br/>
+			{tooltipPerson['sex'] === 'm' ? t('male') : t('female')}, {tooltipPerson['age']} {tooltipPerson['age'] === 1 ? t('year_old') : t('years_old')}
+		</Tooltip>
+		{/if}
 		<canvas id="names-canvas" width="{w || 500}" height="{h || 500}"></canvas>
 		<canvas id="names-canvas-tooltip" width="{w || 500}" height="{h || 500}"></canvas>
 	{/if}
