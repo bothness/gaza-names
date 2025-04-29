@@ -21,6 +21,11 @@
 
 	let data = {texts: {...texts}};
 	let figureImages = null
+	let canvasElement
+	let ctx
+	let canvasTooltip
+	let ctxTooltip
+	let maxX, maxY
 	onMount(async () => {
 		lo = data.min;
 		hi = data.max;
@@ -37,6 +42,10 @@
 					.then(() => resolve())
 			})
 		]).then(() => {
+			if (canvasElement) {
+				ctx = canvasElement.getContext('2d')
+				ctxTooltip = canvasTooltip.getContext('2d')
+			}
 			loadCanvas(data, figureImages)
 		})
 	});
@@ -51,6 +60,7 @@
 	let showShare = false;
 	let hovered, selected;
 	let tooltipPerson, tooltipX, tooltipY;
+	let isSelected = false
 
 	function getLang(page) {
 		const param = page?.params?.lang;
@@ -165,13 +175,8 @@
 
 	const loadCanvas = async (data, figureImages) => {
 
-		const maxX = w - FIGURE_DRAW_WIDTH
-		const maxY = h - FIGURE_DRAW_HEIGHT
-
-		const canvas = document.getElementById('names-canvas')
-		const ctx = canvas.getContext('2d')
-		const canvasTooltip = document.getElementById('names-canvas-tooltip')
-		const ctxTooltip = canvasTooltip.getContext('2d')
+		maxX = w - FIGURE_DRAW_WIDTH
+		maxY = h - FIGURE_DRAW_HEIGHT
 
 		ctx.reset()
 
@@ -213,31 +218,11 @@
 			}
 		}
 
-		const drawTooltip = (person, x, y) => {
-			ctxTooltip.reset()
-			tooltipPerson = person
-			if (!person) {
+		const trackHover = debounce((e) => {
+			if (isSelected || !canvasElement) {
 				return
 			}
-			person.canvasX = Math.floor(person.x * maxX);
-			person.canvasY = Math.floor(person.y * maxY);
-			tooltipX = person.canvasX + (FIGURE_DRAW_WIDTH * 0.5)
-			tooltipY = person.canvasY + FIGURE_DRAW_HEIGHT
-			ctxTooltip.drawImage(
-				figureImages.selected,
-				person.imageXY.x,
-				person.imageXY.y,
-				FIGURE_WIDTH,
-				FIGURE_HEIGHT,
-				person.canvasX,
-				person.canvasY,
-				FIGURE_DRAW_WIDTH,
-				FIGURE_DRAW_HEIGHT
-			)
-		}
-
-		const trackHover = debounce((e) => {
-			const rect = canvas.getBoundingClientRect()
+			const rect = canvasElement.getBoundingClientRect()
 			const x = e.clientX - rect.left
 			const y = e.clientY - rect.top
 			const width = rect.right - rect.left
@@ -248,11 +233,48 @@
 			}
 			const person = getTooltipPerson(x, y)
 			if (person) {
-				drawTooltip(person, x, y)
+				drawTooltip(person)
 			}
 		}, 100)
 
+		const onClick = e => {
+			const person = getTooltipPerson(e.offsetX, e.offsetY)
+			if (person) {
+				drawTooltip(person)
+				isSelected = true
+			}
+		}
+
 		document.addEventListener('mousemove', trackHover)
+		canvasTooltip.addEventListener('click', onClick)
+	}
+
+	const drawTooltip = (person) => {
+		ctxTooltip.reset()
+		tooltipPerson = person
+		if (!person) {
+			return
+		}
+		person.canvasX = Math.floor(person.x * maxX);
+		person.canvasY = Math.floor(person.y * maxY);
+		tooltipX = person.canvasX + (FIGURE_DRAW_WIDTH * 0.5)
+		tooltipY = person.canvasY + FIGURE_DRAW_HEIGHT
+		ctxTooltip.drawImage(
+			figureImages.selected,
+			person.imageXY.x,
+			person.imageXY.y,
+			FIGURE_WIDTH,
+			FIGURE_HEIGHT,
+			person.canvasX,
+			person.canvasY,
+			FIGURE_DRAW_WIDTH,
+			FIGURE_DRAW_HEIGHT
+		)
+	}
+
+	const onCloseTooltip = () => {
+		drawTooltip()
+		isSelected = false
 	}
 
 
@@ -381,14 +403,14 @@
 			{/each}
 		</div>
 	{:else if w}
+		<canvas bind:this={canvasElement} id="names-canvas" width="{w || 500}" height="{h || 500}"></canvas>
+		<canvas bind:this={canvasTooltip} id="names-canvas-tooltip" width="{w || 500}" height="{h || 500}"></canvas>
 		{#if tooltipPerson}
 		<Tooltip width={w + 24} x={tooltipX} y={tooltipY} pos="bottom">
-			<strong>{tooltipPerson[nameKey]}</strong><button on:click={() => selected = null} class="modal-close" title="{t('close')}"><Icon type="close"/></button><br/>
+			<strong>{tooltipPerson[nameKey]}</strong><button on:click={onCloseTooltip} class="modal-close" title="{t('close')}"><Icon type="close"/></button><br/>
 			{tooltipPerson['sex'] === 'm' ? t('male') : t('female')}, {tooltipPerson['age']} {tooltipPerson['age'] === 1 ? t('year_old') : t('years_old')}
 		</Tooltip>
 		{/if}
-		<canvas id="names-canvas" width="{w || 500}" height="{h || 500}"></canvas>
-		<canvas id="names-canvas-tooltip" width="{w || 500}" height="{h || 500}"></canvas>
 	{/if}
 </div>
 
@@ -409,7 +431,11 @@
 	:global(body) {
 		background: #f9f9f9;
 		margin: 0;
-		padding: 12px;
+		padding: 0;
+	}
+	.header,
+	.footer {
+		padding: 0.75rem;
 	}
 	button {
 		cursor: pointer;
