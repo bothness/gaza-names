@@ -445,7 +445,7 @@
 			</div>
 			<nav class="names-pagination-buttons">
 				{#each {length: Math.ceil(data.people.length / COUNT_PER_PAGE)} as _, i}
-					<button on:click={() => currentPage = i}>{i+1}</button>
+					<button class:current-page={currentPage === i} on:click={() => currentPage = i}>{i+1}</button>
 				{/each}
 			</nav>
 		</div>
@@ -638,6 +638,10 @@
 		background: transparent;
 		margin: 0;
 		width: 2rem;
+	}
+	.names-pagination-buttons button.current-page {
+		color: white;
+		background: darkred;
 	}
 	input[type='text'] {
 		width: auto;
