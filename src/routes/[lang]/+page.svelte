@@ -216,7 +216,7 @@
 					const yDistance = Math.abs(person.canvasY - y + halfDistanceH)
 					person.xDistance = xDistance
 					person.yDistance = yDistance
-					return xDistance <= halfDistanceW || yDistance < halfDistanceH
+					return !person.hidden && (xDistance <= halfDistanceW || yDistance < halfDistanceH)
 				})
 				.map(person => {
 					person.distance = person.xDistance + person.yDistance
