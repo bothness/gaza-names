@@ -583,6 +583,9 @@
 		padding-left: 0.75rem;
 		padding-right: 0.75rem;
 	}
+	.name-wrapper {
+		position: relative;
+	}
 	.name {
 		padding: 0;
 		border: none;
