@@ -6,18 +6,17 @@
 	import { page } from '$app/stores';
 	import { domain, texts } from '$lib/data/config';
 	import { getData, FIGURE_WIDTH, FIGURE_HEIGHT } from '$lib/js/get-data';
-	import people from '$lib/data/people';
 	import tooltip from '$lib/ui/tooltip';
 	import Tooltip from '$lib/ui/Tooltip.svelte';
 	import Icon from '$lib/ui/Icon.svelte';
 	import Logo from '$lib/ui/Logo.svelte';
 	import License from '$lib/ui/License.svelte';
-	import Page from '../+page.svelte';
 	import debounce from 'debounce';
 
 
 	const FIGURE_DRAW_WIDTH = 20
 	const FIGURE_DRAW_HEIGHT = 40
+	const COUNT_PER_PAGE = 1000
 
 	let data = {texts: {...texts}};
 	let figureImages = null
@@ -26,10 +25,21 @@
 	let canvasTooltip
 	let ctxTooltip
 	let maxX, maxY
-	onMount(async () => {
-		lo = data.min;
-		hi = data.max;
+	let lo;
+	let hi;
+	let w, width, nav, navLeft;
+	let filterText = '';
+	let showNames = false;
+	let showFilters = false;
+	let showModal = false;
+	let showShare = false;
+	let hovered, selected;
+	let tooltipPerson, tooltipX, tooltipY;
+	let isSelected = false
+	let currentPage = 0
+	let selectedNameIndex = -1
 
+	onMount(async () => {
 		Promise.all([
 			new Promise(resolve => {
 				return getData()
@@ -42,25 +52,11 @@
 					.then(() => resolve())
 			})
 		]).then(() => {
-			if (canvasElement) {
-				ctx = canvasElement.getContext('2d')
-				ctxTooltip = canvasTooltip.getContext('2d')
-			}
+			lo = data.min;
+			hi = data.max;
 			loadCanvas(data, figureImages)
 		})
 	});
-
-	let lo;
-	let hi;
-	let w, width, nav, navLeft;
-	let filterText = '';
-	let showNames = false;
-	let showFilters = false;
-	let showModal = false;
-	let showShare = false;
-	let hovered, selected;
-	let tooltipPerson, tooltipX, tooltipY;
-	let isSelected = false
 
 	function getLang(page) {
 		const param = page?.params?.lang;
@@ -99,6 +95,10 @@
 		if (count === 1) {
 			const person = data.people.find(d => d[nameKey] === filterText);
 			if (person) lo = hi = person['age'];
+		}
+		// Re-draw if the canvas is visible
+		if (ctx) {
+			loadCanvas(data, figureImages)
 		}
 	}
 	$: data.people && updateFilter(filterText, lo, hi);
@@ -175,12 +175,22 @@
 
 	const loadCanvas = async (data, figureImages) => {
 
+		if (!canvasElement) {
+			return
+		}
+
+		ctx = canvasElement.getContext('2d')
+		ctxTooltip = canvasTooltip.getContext('2d')
+		ctx.reset()
+
 		maxX = w - FIGURE_DRAW_WIDTH
 		maxY = h - FIGURE_DRAW_HEIGHT
 
-		ctx.reset()
 
 		data.people.forEach((person, i) => {
+			if (person.hidden) {
+				return
+			}
 			person.canvasX = Math.floor(person.x * maxX);
 			person.canvasY = Math.floor(person.y * maxY);
 			ctx.drawImage(
@@ -277,6 +287,25 @@
 		isSelected = false
 	}
 
+	/**
+	 * Re-draw the canvas when toggling between names/figures
+	 */
+	const toggleView = () => {
+		showNames = !showNames;
+		selected = null
+		if (!showNames) {
+			// Make sure canvas is mounted onto site
+			setTimeout(() => {
+				loadCanvas(data, figureImages)
+			}, 1)
+		}
+	}
+
+	/** Toggle tooltip on the names display */
+	const selectName = index => {
+		selectedNameIndex = index
+	}
+
 
 </script>
 
@@ -338,7 +367,7 @@
 				>{/key}
 			{#key showNames}<button
 					title={showNames ? t('show_people') : t('show_names')}
-					on:click={() => {showNames = !showNames; selected = null}}
+					on:click={toggleView}
 					use:tooltip><Icon type={showNames ? 'person' : 'abc'} /></button
 				>{/key}
 			<button title={t('about')} on:click={() => (showModal = true)} use:tooltip
@@ -390,17 +419,27 @@
 <div class="container" bind:clientWidth={w}>
 	{#if showNames}
 		<div class="columns">
-			{#each data.people as d (d['index'])}
-				<span
-					style:color={d['index'] === selected?.d?.['index'] ? 'black' : d.hidden === true ? 'rgba(0,0,0,0.1)' : 'rgba(139,0,0,1)'}
-					style:-webkit-text-stroke={d['index'] === selected?.d?.['index'] ? '1px #222' : '0'}
-					on:click={(e) => selected = {d, pos: e.target.getBoundingClientRect()}}
-					on:mouseover={(e) => hovered	 = {d, pos: e.target.getBoundingClientRect()}}
-					on:mouseout={() => hovered = null}
-				>
-					{d[nameKey]}
-				</span>
+			{#each data.people.slice(currentPage * COUNT_PER_PAGE, (currentPage * COUNT_PER_PAGE) + COUNT_PER_PAGE - 1) as d (d['index'])}
+				<div class="name-wrapper" class:name-selected-wrapper={d['index'] === selectedNameIndex}>
+					<button class="name" on:click={() => selectName(d['index'])}>
+						{d[nameKey]}
+					</button>
+					<span class="name-tooltip">
+						<strong>{d[nameKey]}</strong><button on:click={() => selectName()} class="modal-close" title="{t('close')}"><Icon type="close"/></button><br/>
+						{d['sex'] === 'm' ? t('male') : t('female')}, {d['age']} {d['age'] === 1 ? t('year_old') : t('years_old')}
+					</span>
+				</div>
 			{/each}
+		</div>
+		<div class="names-pagination">
+			<div class="names-pagination-description">
+				Showing {currentPage * COUNT_PER_PAGE + 1}—{Math.min(data.people.length, currentPage * COUNT_PER_PAGE + COUNT_PER_PAGE)} of {data.people.length} names
+			</div>
+			<nav class="names-pagination-buttons">
+				{#each {length: Math.ceil(data.people.length / COUNT_PER_PAGE)} as _, i}
+					<button on:click={() => currentPage = i}>{i+1}</button>
+				{/each}
+			</nav>
 		</div>
 	{:else if w}
 		<canvas bind:this={canvasElement} id="names-canvas" width="{w || 500}" height="{h || 500}"></canvas>
@@ -537,26 +576,54 @@
 	}
 	.columns {
 		column-width: 180px;
-		font-size: 0.8em;
-	}
-	.columns > span {
-		display: block;
-		color: darkred;
+		font-size: 0.8rem;
 		line-height: 1;
-		margin-bottom: 4px;
 		break-inside: avoid;
+		padding-left: 0.75rem;
+		padding-right: 0.75rem;
 	}
-	.columns > span:hover {
-		color: #222;
-		-webkit-text-stroke: 1px #222;
-		/* font-weight: bold; */
+	.name {
+		padding: 0;
+		border: none;
+		background: transparent;
+		margin: 0;
+		text-align: initial;
+		break-inside: avoid;
+		color: darkred;
 	}
-	svg {
+	.name-tooltip {
+		display: none;
+		position: absolute;
+		top: 100%;
+		left: 0;
 		width: 100%;
-		overflow: visible;
+		padding: 0.25rem;
+		background: #222;
+		color: white;
+		z-index: 9999;
 	}
-	svg > path:hover {
-		fill: #222;
+	.name-selected-wrapper .name-tooltip {
+		display: block;
+	}
+	.names-pagination {
+		margin: 2rem 0.75rem;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 1rem;
+	}
+	.names-pagination-buttons {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: center;
+		gap: 0.125rem;
+	}
+	.names-pagination-buttons button {
+		color: darkred;
+		border: 1px solid darkred;
+		background: transparent;
+		margin: 0;
+		width: 2rem;
 	}
 	input[type='text'] {
 		width: auto;
