@@ -2,7 +2,6 @@ import { csvParse, autoType } from "d3-dsv";
 import makePoints from "./make-points";
 
 const database = "https://docs.google.com/spreadsheets/d/1PqAxz42cbTNnPijSzAcY83aZzjqKbOXivR4iO9LKGno/export?format=csv";
-// const NAMES = `./data/names-temp.csv`
 const NAMES = `./data/names-2025-03-23.csv`
 
 const FIGURE_BABY_ROW = 0
