@@ -4,7 +4,7 @@
 	import { goto, afterNavigate } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { page } from '$app/stores';
-	import { domain, texts } from '$lib/data/config';
+	import config from '$lib/data/config.js';
 	import { getData, FIGURE_WIDTH, FIGURE_HEIGHT } from '$lib/js/get-data';
 	import tooltip from '$lib/ui/tooltip';
 	import Tooltip from '$lib/ui/Tooltip.svelte';
@@ -13,12 +13,13 @@
 	import License from '$lib/ui/License.svelte';
 	import debounce from 'debounce';
 
+	const domain = config.domain
 
 	const FIGURE_DRAW_WIDTH = 20
 	const FIGURE_DRAW_HEIGHT = 40
 	const COUNT_PER_PAGE = 1000
 
-	let data = {texts: {...texts}};
+	let data = {...config}
 	let figureImages = null
 	let canvasElement
 	let ctx
@@ -101,7 +102,7 @@
 			loadCanvas(data, figureImages)
 		}
 	}
-	$: data.people && updateFilter(filterText, lo, hi);
+	$: data?.people && updateFilter(filterText, lo, hi);
 
 	function doages() {
 		if (lo < data.min) lo = data.min;

@@ -25,16 +25,6 @@ function imageXY(age, sex) {
 }
 
 export const getData = async () => {
-  const content_raw = csvParse(await (await fetch(`${database}&gid=849504288`)).text(), autoType);
-  const texts = {
-    female: {en: 'Female', ar: 'انثى'},
-    male: {en: 'Male', ar: 'Male'},
-  };
-  const meta = {};
-  for (const c of content_raw) {
-    if (c.value) meta[c.key] = c.value;
-    else texts[c.key] = {en: c.en, ar: c.ar};
-  }
   const people_raw = csvParse(await (await fetch(NAMES)).text(), autoType);
   const points = makePoints(people_raw.length);
   let min = 0, max = 0;
@@ -49,5 +39,5 @@ export const getData = async () => {
       flip: Math.round(Math.random())
     };
   });
-  return { meta, texts, people, min, max };
+  return { people, min, max };
 }

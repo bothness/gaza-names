@@ -1,6 +1,122 @@
-export const domain = "https://visualizingpalestine.org";
-
-export const texts = {
-  title: {en: "Remember their names", ar:	"تذكر أسمائهم"},
-  description: {en: "Naming the Palestinians who have been killed in Gaza", ar: "تسمية الفلسطينيين الذين قتلوا في غزة"},
+export default {
+  "domain": "https://visualizingpalestine.org",
+  "meta": {
+    "total_killed": 34244,
+    "start_date": new Date("2023-10-07T00:00:00.000Z"),
+    "end_date": new Date("2025-03-23T00:00:00.000Z")
+  },
+  "texts": {
+    "title": {
+      "en": "Remember their names",
+      "ar": "تذكروا أسماءهم "
+    },
+    "description": {
+      "en": "Naming the Palestinians who have been killed in Gaza",
+      "ar": "تسمية الفلسطينيين/ات الذين قتلوا/ن في غزة"
+    },
+    "female": {
+      "en": "Female",
+      "ar": "انثى"
+    },
+    "male": {
+      "en": "Male",
+      "ar": "Male"
+    },
+    "out_of": {
+      "en": "out of",
+      "ar": "من أصل"
+    },
+    "subtitle": {
+      "en": "Palestinians killed in Gaza",
+      "ar": "فلسطيني/فلسطينية قتلوا/ن في غزة"
+    },
+    "show_filters": {
+      "en": "Show filters",
+      "ar": "اظهار الفئة"
+    },
+    "reset_filters": {
+      "en": "Reset filters",
+      "ar": "إعادة تعديل الفئة\r\n"
+    },
+    "language": {
+      "en": "اللغة العربية",
+      "ar": "English language"
+    },
+    "about": {
+      "en": "About this page",
+      "ar": "عن هذه الصفحة"
+    },
+    "share": {
+      "en": "Share this page",
+      "ar": "شارك هذه الصفحة"
+    },
+    "show_names": {
+      "en": "Show names",
+      "ar": "عرض الأسماء"
+    },
+    "show_people": {
+      "en": "Show people",
+      "ar": "إظهار الأفراد \r\n"
+    },
+    "years_old": {
+      "en": "years old",
+      "ar": "سنوات"
+    },
+    "year_old": {
+      "en": "year old",
+      "ar": "سنة"
+    },
+    "about_text": {
+      "en": "This visual shows the names of 34,344 Palestinians killed by Israeli forces in Gaza from 7 October 2023 to 31 August 2024. This staggering figure includes only those whose names and ages could be identified by the Ministry of Health in Gaza. Thousands of people remain unidentified because their bodies are damaged beyond recognition, they have no surviving family to identify them, or the Ministry of Health in Gaza has been unable to recover their bodies amid the ongoing genocide. \n\nWe will continue to update this visual as more information becomes available.",
+      "ar": "يُظهر هذا الرسم/تُوضح هذه الصورة أسماء 34,344 فلسطينيًا قُتلوا على يد القوات الإسرائيلية في غزة من 7 أكتوبر 2023 حتى 31 أغسطس 2024. يشمل هذا الرقم الهائل فقط أولئك الذين تمكنت وزارة الصحة في غزة من تحديد أسمائهم وأعمارهم. لا يزالُ آلاف الأشخاص غير معروفين لأن جثثهم تضررت بشكل لا يُمكن التعرف عليه، أو لعدم وجود أقارب أحياء للتعرف عليهم، أو لأن وزارة الصحة في غزة لم تتمكن من استعادة جثثهم في ظل الإبادة الجماعية المستمرة. سنستمر في تحديث هذا الرسم البياني كلما توفرت معلومات جديدة.\n\n\n\n\n"
+    },
+    "aged": {
+      "en": "Aged",
+      "ar": "العمر"
+    },
+    "to": {
+      "en": "to",
+      "ar": "ل"
+    },
+    "twitter": {
+      "en": "Share on Twitter",
+      "ar": "شارك الصفحة عبر منصة X (تويتر)"
+    },
+    "email": {
+      "en": "Share by email",
+      "ar": "أرسل/ي عبر البريد الإلكتروني"
+    },
+    "facebook": {
+      "en": "Share on Facebook",
+      "ar": "انشرها/يها على الفيسبوك"
+    },
+    "whatsapp": {
+      "en": "Share on Whatsapp",
+      "ar": "شارك/يها عبر تطبيق واتساب"
+    },
+    "reddit": {
+      "en": "Share on Reddit",
+      "ar": "شارك/ي على منصة reddit"
+    },
+    "type_name": {
+      "en": "Type a name",
+      "ar": "اكتب/ي اسمًا"
+    },
+    "license": {
+      "en": "View license",
+      "ar": "عرض الترخيص"
+    },
+    "vp": {
+      "en": "Visualizing Palestine",
+      "ar": "Visualizing Palestine"
+    },
+    "gaza": {
+      "en": "Gaza",
+      "ar": "غزة"
+    },
+    "close": {
+      "en": "Close",
+      "ar": "أغلق"
+    }
+  }
 }
