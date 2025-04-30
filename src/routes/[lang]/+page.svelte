@@ -421,7 +421,7 @@
 		<div class="columns">
 			{#each data.people.slice(currentPage * COUNT_PER_PAGE, (currentPage * COUNT_PER_PAGE) + COUNT_PER_PAGE - 1) as d (d['index'])}
 				<div class="name-wrapper" class:name-selected-wrapper={d['index'] === selectedNameIndex}>
-					<button class="name" on:click={() => selectName(d['index'])}>
+					<button class="name" class:name-unselected={d.hidden} on:click={() => selectName(d['index'])}>
 						{d[nameKey]}
 					</button>
 					<span class="name-tooltip">
@@ -590,6 +590,9 @@
 		text-align: initial;
 		break-inside: avoid;
 		color: darkred;
+	}
+	.name-unselected {
+		opacity: 0.25;
 	}
 	.name-tooltip {
 		display: none;
