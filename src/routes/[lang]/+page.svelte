@@ -347,7 +347,6 @@
 	{/if}
 </svelte:head>
 
-{#if data?.people}
 {#if showModal}
 	<div class="mask">
 		<div class="modal-outer">
@@ -477,6 +476,7 @@
 	{/if}
 </div>
 
+{#if data.people.length}
 <footer class="footer">
 	<a href="{domain}" title="{t("vp")}"><Logo/></a>
 	<a href="https://creativecommons.org/licenses/by-nc-nd/4.0/deed.{lang}" title="{t("license")}" target="_blank"><License/></a>
