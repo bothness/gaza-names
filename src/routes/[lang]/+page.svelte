@@ -5,7 +5,7 @@
 	import { base } from '$app/paths';
 	import { page } from '$app/stores';
 	import config from '$lib/data/config.js';
-	import { getData, FIGURE_WIDTH, FIGURE_HEIGHT } from '$lib/js/get-data';
+	import { getDataChunk, FIGURE_WIDTH, FIGURE_HEIGHT } from '$lib/js/get-data';
 	import tooltip from '$lib/ui/tooltip';
 	import Tooltip from '$lib/ui/Tooltip.svelte';
 	import Icon from '$lib/ui/Icon.svelte';
@@ -19,7 +19,6 @@
 	const FIGURE_DRAW_HEIGHT = 40
 	const COUNT_PER_PAGE = 1000
 
-	let data = {...config}
 	let figureImages = null
 	let canvasElement
 	let ctx
@@ -40,11 +39,18 @@
 	let currentPage = 0
 	let selectedNameIndex = -1
 
+	let data = {...config}
+	data.meta.start_date = new Date(data.meta.start_date)
+	data.meta.end_date = new Date(data.meta.end_date)
+	data.people = []
+
 	onMount(async () => {
+		let chunks = [...config.meta.chunks]
 		Promise.all([
 			new Promise(resolve => {
-				return getData()
-					.then(r => data = Object.assign(data, r))
+				let chunk = chunks.splice(0, 1)
+				return getDataChunk(chunk)
+					.then(r => data.people.push(...r))
 					.then(() => resolve())
 			}),
 			new Promise(resolve => {
@@ -55,7 +61,15 @@
 		]).then(() => {
 			lo = data.min;
 			hi = data.max;
-			loadCanvas(data, figureImages)
+			initCanvas(data, figureImages)
+		}).then(() => {
+			chunks.forEach(chunk => {
+				getDataChunk(chunk)
+					.then(r => {
+						data.people.push(...r)
+						drawCanvas(r, figureImages)
+					})
+			})
 		})
 	});
 
@@ -65,7 +79,7 @@
 		return "en";
 	}
 
-	$: h = w && data?.people ? (data.people.length * 400) / w : 500;
+	$: h = w && config?.meta?.total_killed ? (config.meta.total_killed * 400) / w : 500;
 	$: lang = getLang($page);
 	$: t = (key) => (data?.texts?.[key]?.[lang] ? data.texts[key][lang] : key);
 	$: nameKey = lang === 'en' ? 'name' : 'name_ar';
@@ -99,7 +113,7 @@
 		}
 		// Re-draw if the canvas is visible
 		if (ctx) {
-			loadCanvas(data, figureImages)
+			initCanvas(data, figureImages)
 		}
 	}
 	$: data?.people && updateFilter(filterText, lo, hi);
@@ -138,7 +152,7 @@
 
 	const onResize = debounce((el) => {
 		checkNavLeft(el)
-		loadCanvas(data, figureImages)
+		initCanvas(data, figureImages)
 	}, 1000)
 
 	const checkNavLeft = (el) => {
@@ -174,7 +188,7 @@
 		}
 	}
 
-	const loadCanvas = async (data, figureImages) => {
+	const initCanvas = async (data, figureImages) => {
 
 		if (!canvasElement) {
 			return
@@ -187,25 +201,7 @@
 		maxX = w - FIGURE_DRAW_WIDTH
 		maxY = h - FIGURE_DRAW_HEIGHT
 
-
-		data.people.forEach((person, i) => {
-			if (person.hidden) {
-				return
-			}
-			person.canvasX = Math.floor(person.x * maxX);
-			person.canvasY = Math.floor(person.y * maxY);
-			ctx.drawImage(
-				figureImages.figure,
-				person.imageXY.x,
-				person.imageXY.y,
-				FIGURE_WIDTH,
-				FIGURE_HEIGHT,
-				person.canvasX,
-				person.canvasY,
-				FIGURE_DRAW_WIDTH,
-				FIGURE_DRAW_HEIGHT
-			)
-		})
+		drawCanvas(data.people, figureImages)
 
 		const getTooltipPerson = (x, y) => {
 			const halfDistanceW = FIGURE_DRAW_WIDTH * 0.5
@@ -260,6 +256,27 @@
 		canvasTooltip.addEventListener('click', onClick)
 	}
 
+	const drawCanvas = (people, figureImages) => {
+		people.forEach((person, i) => {
+			if (person.hidden) {
+				return
+			}
+			person.canvasX = Math.floor(person.x * maxX);
+			person.canvasY = Math.floor(person.y * maxY);
+			ctx.drawImage(
+				figureImages.figure,
+				person.imageX,
+				person.imageY,
+				FIGURE_WIDTH,
+				FIGURE_HEIGHT,
+				person.canvasX,
+				person.canvasY,
+				FIGURE_DRAW_WIDTH,
+				FIGURE_DRAW_HEIGHT
+			)
+		})
+	}
+
 	const drawTooltip = (person) => {
 		ctxTooltip.reset()
 		tooltipPerson = person
@@ -272,8 +289,8 @@
 		tooltipY = person.canvasY + FIGURE_DRAW_HEIGHT
 		ctxTooltip.drawImage(
 			figureImages.selected,
-			person.imageXY.x,
-			person.imageXY.y,
+			person.imageX,
+			person.imageY,
 			FIGURE_WIDTH,
 			FIGURE_HEIGHT,
 			person.canvasX,
@@ -297,7 +314,7 @@
 		if (!showNames) {
 			// Make sure canvas is mounted onto site
 			setTimeout(() => {
-				loadCanvas(data, figureImages)
+				initCanvas(data, figureImages)
 			}, 1)
 		}
 	}
@@ -356,8 +373,7 @@
 	<div>
 		<h1>{t('title')}</h1>
 		<p class="subtitle">
-			{data.people.length.toLocaleString()}
-			{#if data.people.length < data.meta.total_killed}{t('out_of')} {data.meta.total_killed.toLocaleString()}{/if}
+			{config.meta.total_killed.toLocaleString()}
 			{t('subtitle')}, <span style:white-space="nowrap">{makeDateRange(data.meta, lang)}</span>
 		</p>
 	</div>
@@ -427,9 +443,9 @@
 <div class="container" bind:clientWidth={w}>
 	{#if showNames}
 		<div class="columns">
-			{#each data.people.slice(currentPage * COUNT_PER_PAGE, (currentPage * COUNT_PER_PAGE) + COUNT_PER_PAGE - 1) as d (d['index'])}
-				<div class="name-wrapper" class:name-selected-wrapper={d['index'] === selectedNameIndex}>
-					<button class="name" class:name-unselected={d.hidden} on:click={() => selectName(d['index'])}>
+			{#each data.people.slice(currentPage * COUNT_PER_PAGE, (currentPage * COUNT_PER_PAGE) + COUNT_PER_PAGE - 1) as d, index}
+				<div class="name-wrapper" class:name-selected-wrapper={index === selectedNameIndex}>
+					<button class="name" class:name-unselected={d.hidden} on:click={() => selectName(index)}>
 						{d[nameKey]}
 					</button>
 					<span class="name-tooltip">

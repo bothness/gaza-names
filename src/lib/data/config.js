@@ -1,9 +1,21 @@
 export default {
   "domain": "https://visualizingpalestine.org",
   "meta": {
-    "total_killed": 34244,
-    "start_date": new Date("2023-10-07T00:00:00.000Z"),
-    "end_date": new Date("2025-03-23T00:00:00.000Z")
+    "total_killed": 50020,
+    "start_date": "2023-10-07T00:00:00.000Z",
+    "end_date": "2025-03-23T00:00:00.000Z",
+    "chunks": [
+      "data/names-2025-03-23-0.csv",
+      "data/names-2025-03-23-1.csv",
+      "data/names-2025-03-23-2.csv",
+      "data/names-2025-03-23-3.csv",
+      "data/names-2025-03-23-4.csv",
+      "data/names-2025-03-23-5.csv",
+      "data/names-2025-03-23-6.csv",
+      "data/names-2025-03-23-7.csv",
+      "data/names-2025-03-23-8.csv",
+      "data/names-2025-03-23-9.csv"
+    ]
   },
   "texts": {
     "title": {
@@ -118,5 +130,7 @@ export default {
       "en": "Close",
       "ar": "أغلق"
     }
-  }
+  },
+  "min": 0,
+  "max": 110
 }
