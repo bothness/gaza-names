@@ -27,10 +27,6 @@ You can preview the production build with `npm run preview`.
 
 ## Scripts
 
-A previous version of this platform used SVG files for the figures. The following Node.js script was used to create `.svg` files from the path information contained in `data/people.js`.
+The script `src/scripts/generate-csv.js` will split the list of names into chunks and save them into `static/data`. It will also update the file at `src/lib/data/config.js` with the total killed and the list of chunk filenames.
 
-```bash
-node ./src/scripts/create-svg.js
-```
-
-These were then converted into the `static/img/figures.png` file.
+This will happen automatically when running `npm run build`. To run it manually during development, run `node ./src/scripts/generate-csv.js`.
