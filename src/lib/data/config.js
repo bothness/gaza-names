@@ -32,7 +32,7 @@ export default {
     },
     "male": {
       "en": "Male",
-      "ar": "Male"
+      "ar": "ذكر"
     },
     "out_of": {
       "en": "out of",
