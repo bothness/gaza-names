@@ -16,8 +16,7 @@ const config = {
 			entries: ["/", "/en.html", "/ar.html"]
 		},
 		paths: {
-			// base: production ? '/gaza-names' : '',
-			base: '',
+			base: production ? '/gaza-names' : '',
 			relative: false
 		}
 	}
