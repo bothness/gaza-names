@@ -4,32 +4,89 @@
 	import { goto, afterNavigate } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { page } from '$app/stores';
-	import { domain, texts } from '$lib/data/config';
-	import getData from '$lib/js/get-data';
-	import people from '$lib/data/people';
+	import config from '$lib/data/config.js';
+	import { getDataChunk, FIGURE_WIDTH, FIGURE_HEIGHT } from '$lib/js/get-data';
 	import tooltip from '$lib/ui/tooltip';
 	import Tooltip from '$lib/ui/Tooltip.svelte';
 	import Icon from '$lib/ui/Icon.svelte';
 	import Logo from '$lib/ui/Logo.svelte';
 	import License from '$lib/ui/License.svelte';
-	import Page from '../+page.svelte';
+	import debounce from 'debounce';
 
-	let data = {texts: {...texts}};
-	onMount(async () => {
-		data = Object.assign(data, await getData());
-		lo = data.min;
-		hi = data.max;
-	});
+	const domain = config.domain
 
+	const FIGURE_DRAW_WIDTH = 20
+	const FIGURE_DRAW_HEIGHT = 40
+	const COUNT_PER_PAGE = 1000
+
+	let figureImages = null
+	let canvasElement
+	let ctx
+	let canvasTooltip
+	let ctxTooltip
+	let maxX, maxY
 	let lo;
 	let hi;
 	let w, width, nav, navLeft;
 	let filterText = '';
+	/**
+	 * Mobile devices do not support a <canvas> size large
+	 * enough to render the figures. This flag will turn
+	 * the figures off and render only the names without
+	 * the option to switch to figures if a canvas error
+	 * is detected.
+	 */
+	let supportsFigures = true;
 	let showNames = false;
 	let showFilters = false;
 	let showModal = false;
 	let showShare = false;
 	let hovered, selected;
+	let tooltipPerson, tooltipX, tooltipY;
+	let isSelected = false
+	let currentPage = 0
+	let selectedNameIndex = -1
+	let pages = 0
+
+	let data = {...config}
+	data.meta.start_date = new Date(data.meta.start_date)
+	data.meta.end_date = new Date(data.meta.end_date)
+	data.people = []
+
+	onMount(async () => {
+		let chunks = [...config.meta.chunks]
+		Promise.all([
+			new Promise(resolve => {
+				let chunk = chunks.splice(0, 1)
+				return getDataChunk(chunk)
+					.then(r => data.people.push(...r))
+					.then(() => {
+						pages = Math.ceil(data.people.length / COUNT_PER_PAGE)
+						resolve()
+					})
+			}),
+			new Promise(resolve => {
+				loadFiguresImg()
+					.then(r => figureImages = r)
+					.then(() => resolve())
+			})
+		]).then(() => {
+			lo = data.min;
+			hi = data.max;
+			initCanvas(data, figureImages)
+		}).then(() => {
+			chunks.forEach(chunk => {
+				getDataChunk(chunk)
+					.then(r => {
+						data.people.push(...r)
+						pages = Math.ceil(data.people.length / COUNT_PER_PAGE)
+						if (supportsFigures) {
+							drawCanvas(r, figureImages)
+						}
+					})
+			})
+		})
+	});
 
 	function getLang(page) {
 		const param = page?.params?.lang;
@@ -37,11 +94,10 @@
 		return "en";
 	}
 
-	$: h = w && data?.people ? (data.people.length * 400) / w : 500;
+	$: h = w && config?.meta?.total_killed ? (config.meta.total_killed * 400) / w : 500;
 	$: lang = getLang($page);
 	$: t = (key) => (data?.texts?.[key]?.[lang] ? data.texts[key][lang] : key);
-	$: nameKey = lang === 'en' ? 'Name in English' : 'الاسم';
-	$: sexKey = lang === 'en' ? 'Sex in English' : 'الجنس';
+	$: nameKey = lang === 'en' ? 'name' : 'name_ar';
 
 	const formatParagraphs = (text) =>
 		text
@@ -57,8 +113,8 @@
 				(!filterText ||
 					(data.people[i][nameKey] &&
 						data.people[i][nameKey].match(new RegExp(`${filterText}`, 'i')))) &&
-				data.people[i]['Age'] >= lo &&
-				data.people[i]['Age'] <= hi
+				data.people[i]['age'] >= lo &&
+				data.people[i]['age'] <= hi
 			) {
 				hidden = false;
 				count += 1;
@@ -68,12 +124,16 @@
 		}
 		if (count === 1) {
 			const person = data.people.find(d => d[nameKey] === filterText);
-			if (person) lo = hi = person['Age'];
+			if (person) lo = hi = person['age'];
+		}
+		// Re-draw if the canvas is visible
+		if (ctx) {
+			initCanvas(data, figureImages)
 		}
 	}
-	$: data.people && updateFilter(filterText, lo, hi);
+	$: data?.people && updateFilter(filterText, lo, hi);
 
-	function doAges() {
+	function doages() {
 		if (lo < data.min) lo = data.min;
 		if (lo > hi) lo = hi;
 		if (hi > data.max) hi = data.max;
@@ -89,21 +149,26 @@
 
 	function doSelect(d) {
 		filterText = d[nameKey];
-		lo = hi = d['Age'];
+		lo = hi = d['age'];
 		showFilters = true;
 	}
 
+	const makeDate = (date) =>  [
+		date.getDate(),
+		date.toLocaleDateString(lang === "ar" ? "ar-PS" : lang, {month: 'short'}),
+		date.getFullYear()
+	].join(" ");
+
 	function makeDateRange(meta, lang) {
-		const makeDate = (date) =>  [
-			date.getDate(),
-			date.toLocaleDateString(lang === "ar" ? "ar-PS" : lang, {month: 'short'}),
-			date.getFullYear()
-		];
 		const start = makeDate(meta.start_date);
 		const end = makeDate(meta.end_date);
-		if (start[2] === end[2]) start.pop();
-		return `${start.join(" ")} - ${end.join(" ")}`;
+		return `${start}—${end}`;
 	}
+
+	const onResize = debounce((el) => {
+		checkNavLeft(el)
+		initCanvas(data, figureImages)
+	}, 1000)
 
 	const checkNavLeft = (el) => {
 		if (el.target) el = nav;
@@ -116,9 +181,181 @@
 		document.documentElement.setAttribute('lang', lang);
 		document.documentElement.setAttribute('dir', lang === "ar" ? "rtl" : "ltr");
 	});
+
+	const loadFiguresImg = async () => {
+
+		await Promise.all(
+			Array.from(document.images).map(
+				(image) => {
+					return new Promise((resolve) => {
+						if (image?.complete) {
+							resolve()
+						} else {
+							image.addEventListener("load", resolve)
+						}
+					})
+				}
+			),
+		);
+
+		const figure = document.getElementById('elFigures')
+		const selected = document.getElementById('elSelected')
+
+		return {
+			figure,
+			selected
+		}
+	}
+
+	const initCanvas = async (data, figureImages) => {
+
+		if (!canvasElement) {
+			return
+		}
+
+		ctx = canvasElement.getContext('2d')
+		ctxTooltip = canvasTooltip.getContext('2d')
+
+		try {
+			ctx.drawImage(figureImages.figure, 0, 0)
+		} catch (e) {
+			supportsFigures = false
+			showNames = true
+			return
+		}
+
+		ctx.reset()
+
+		maxX = w - FIGURE_DRAW_WIDTH
+		maxY = h - FIGURE_DRAW_HEIGHT
+
+		drawCanvas(data.people, figureImages)
+
+		const getTooltipPerson = (x, y) => {
+			const halfDistanceW = FIGURE_DRAW_WIDTH * 0.5
+			const halfDistanceH = FIGURE_DRAW_HEIGHT * 0.5
+			const persons = data.people
+				.filter(person => {
+					const xDistance = Math.abs(person.canvasX - x + halfDistanceW)
+					const yDistance = Math.abs(person.canvasY - y + halfDistanceH)
+					person.xDistance = xDistance
+					person.yDistance = yDistance
+					return !person.hidden && (xDistance <= halfDistanceW || yDistance < halfDistanceH)
+				})
+				.map(person => {
+					person.distance = person.xDistance + person.yDistance
+					return person
+				})
+				.sort((a, b) => a.distance - b.distance)
+
+			if (persons.length) {
+				return persons[0]
+			}
+		}
+
+		const trackHover = debounce((e) => {
+			if (isSelected || !canvasElement) {
+				return
+			}
+			const rect = canvasElement.getBoundingClientRect()
+			const x = e.clientX - rect.left
+			const y = e.clientY - rect.top
+			const width = rect.right - rect.left
+			const height = rect.bottom - rect.top
+			if (x < 0 | x > width || y > height || y < 0) {
+				drawTooltip()
+				return
+			}
+			const person = getTooltipPerson(x, y)
+			if (person) {
+				drawTooltip(person)
+			}
+		}, 100)
+
+		const onClick = e => {
+			const person = getTooltipPerson(e.offsetX, e.offsetY)
+			if (person) {
+				drawTooltip(person)
+				isSelected = true
+			}
+		}
+
+		document.addEventListener('mousemove', trackHover)
+		canvasTooltip.addEventListener('click', onClick)
+	}
+
+	const drawCanvas = (people, figureImages) => {
+		people.forEach((person, i) => {
+			if (person.hidden) {
+				return
+			}
+			person.canvasX = Math.floor(person.x * maxX);
+			person.canvasY = Math.floor(person.y * maxY);
+			ctx.drawImage(
+				figureImages.figure,
+				person.imageX,
+				person.imageY,
+				FIGURE_WIDTH,
+				FIGURE_HEIGHT,
+				person.canvasX,
+				person.canvasY,
+				FIGURE_DRAW_WIDTH,
+				FIGURE_DRAW_HEIGHT
+			)
+		})
+	}
+
+	const drawTooltip = (person) => {
+		ctxTooltip.reset()
+		tooltipPerson = person
+		if (!person) {
+			return
+		}
+		person.canvasX = Math.floor(person.x * maxX);
+		person.canvasY = Math.floor(person.y * maxY);
+		tooltipX = person.canvasX + (FIGURE_DRAW_WIDTH * 0.5)
+		tooltipY = person.canvasY + FIGURE_DRAW_HEIGHT
+		ctxTooltip.drawImage(
+			figureImages.selected,
+			person.imageX,
+			person.imageY,
+			FIGURE_WIDTH,
+			FIGURE_HEIGHT,
+			person.canvasX,
+			person.canvasY,
+			FIGURE_DRAW_WIDTH,
+			FIGURE_DRAW_HEIGHT
+		)
+	}
+
+	const onCloseTooltip = () => {
+		drawTooltip()
+		isSelected = false
+	}
+
+	/**
+	 * Re-draw the canvas when toggling between names/figures
+	 */
+	const toggleView = () => {
+		showNames = !showNames;
+		selected = null
+		if (!showNames) {
+			// Make sure canvas is mounted onto site
+			setTimeout(() => {
+				initCanvas(data, figureImages)
+			}, 1)
+		}
+	}
+
+	/** Toggle tooltip on the names display */
+	const selectName = index => {
+		selectedNameIndex = index
+	}
+
+
 </script>
 
-<svelte:window on:resize={checkNavLeft} bind:innerWidth={width}/>
+<svelte:window on:resize={onResize} bind:innerWidth={width}/>
 
 <svelte:head>
 	<title>{t("title")}</title>
@@ -138,7 +375,6 @@
 	{/if}
 </svelte:head>
 
-{#if data?.people}
 {#if showModal}
 	<div class="mask">
 		<div class="modal-outer">
@@ -147,31 +383,24 @@
 					><Icon type="close" /></button
 				>
 				<h2>{t('about')}</h2>
-				<p>{@html formatParagraphs(t('about_text'))}</p>
+				<p>{@html
+					formatParagraphs(
+						t('about_text')
+							.replaceAll('{count}', data?.people.length.toLocaleString() ?? '...')
+							.replaceAll('{start_date}', makeDate(data.meta.start_date))
+							.replaceAll('{end_date}', makeDate(data.meta.end_date))
+					)
+				}</p>
 			</div>
 		</div>
 	</div>
-{/if}
-
-{#if selected}
-	<Tooltip width={w + 24} x={(selected.pos.left + selected.pos.right) / 2} y={selected.pos.bottom + window.scrollY} pos="bottom">
-		<strong>{selected.d[nameKey]}</strong><button on:click={() => selected = null} class="modal-close" title="{t('close')}"><Icon type="close"/></button><br/>
-		{selected.d[sexKey]}, {selected.d['Age']} {selected.d['Age'] === 1 ? t('year_old') : t('years_old')}
-	</Tooltip>
-{/if}
-{#if hovered && hovered.d['مسلسل'] !== selected?.d['مسلسل']}
-	<Tooltip width={w + 24} x={(hovered.pos.left + hovered.pos.right) / 2} y={hovered.pos.bottom + window.scrollY} pos="bottom">
-		<strong>{hovered.d[nameKey]}</strong><br/>
-		{hovered.d[sexKey]}, {hovered.d['Age']} {hovered.d['Age'] === 1 ? t('year_old') : t('years_old')}
-	</Tooltip>
 {/if}
 
 <header class="header">
 	<div>
 		<h1>{t('title')}</h1>
 		<p class="subtitle">
-			{data.people.length.toLocaleString()}
-			{#if data.people.length < data.meta.total_killed}{t('out_of')} {data.meta.total_killed.toLocaleString()}{/if}
+			{config.meta.total_killed.toLocaleString()}
 			{t('subtitle')}, <span style:white-space="nowrap">{makeDateRange(data.meta, lang)}</span>
 		</p>
 	</div>
@@ -187,11 +416,15 @@
 					class:button-active={showFilters}
 					use:tooltip><Icon type="{showFilters ? "close" : "filter"}" /></button
 				>{/key}
-			{#key showNames}<button
-					title={showNames ? t('show_people') : t('show_names')}
-					on:click={() => {showNames = !showNames; selected = null}}
-					use:tooltip><Icon type={showNames ? 'person' : 'abc'} /></button
-				>{/key}
+			{#key showNames}
+				{#if supportsFigures}
+					<button
+						title={showNames ? t('show_people') : t('show_names')}
+						on:click={toggleView}
+						use:tooltip><Icon type={showNames ? 'person' : 'abc'} /></button
+					>
+				{/if}
+			{/key}
 			<button title={t('about')} on:click={() => (showModal = true)} use:tooltip
 				><Icon type="info" /></button
 			>
@@ -222,9 +455,9 @@
 					{/each}
 				</datalist>
 				<span>{t("aged")}</span>
-				<input type="number" bind:value={lo} min={data.min} max={hi} on:change={doAges} />
+				<input type="number" bind:value={lo} min={data.min} max={hi} on:change={doages} />
 				<span>{t("to")}</span>
-				<input type="number" bind:value={hi} min={lo} max={data.max} on:change={doAges} />
+				<input type="number" bind:value={hi} min={lo} max={data.max} on:change={doages} />
 				<!-- <button on:click={resetFilters}>{t("reset")}</button> -->
 			</div>
 		{:else if showShare}
@@ -239,40 +472,47 @@
 	</nav>
 </header>
 <div class="container" bind:clientWidth={w}>
-	{#if showNames}
+	<div style="display: none;">
+		<img src="./img/figures.png" id="elFigures" alt="">
+		<img src="./img/figures-selected.png" id="elSelected" alt="">
+	</div>
+	{#if showNames || !supportsFigures}
 		<div class="columns">
-			{#each data.people as d (d['مسلسل'])}
-				<span
-					style:color={d['مسلسل'] === selected?.d?.['مسلسل'] ? 'black' : d.hidden === true ? 'rgba(0,0,0,0.1)' : 'rgba(139,0,0,1)'}
-					style:-webkit-text-stroke={d['مسلسل'] === selected?.d?.['مسلسل'] ? '1px #222' : '0'}
-					on:click={(e) => selected = {d, pos: e.target.getBoundingClientRect()}}
-					on:mouseover={(e) => hovered	 = {d, pos: e.target.getBoundingClientRect()}}
-					on:mouseout={() => hovered = null}
-				>
-					{d[nameKey]}
-				</span>
+			{#each data.people.slice(currentPage * COUNT_PER_PAGE, (currentPage * COUNT_PER_PAGE) + COUNT_PER_PAGE - 1) as d, index}
+				<div class="name-wrapper" class:name-selected-wrapper={index === selectedNameIndex}>
+					<button class="name" class:name-unselected={d.hidden} on:click={() => selectName(index)}>
+						{d[nameKey]}
+					</button>
+					<span class="name-tooltip">
+						<strong>{d[nameKey]}</strong><button on:click={() => selectName()} class="modal-close" title="{t('close')}"><Icon type="close"/></button><br/>
+						{d['sex'] === 'm' ? t('male') : t('female')}, {d['age']} {d['age'] === 1 ? t('year_old') : t('years_old')}
+					</span>
+				</div>
 			{/each}
 		</div>
-	{:else if w}
-		<svg viewBox="0 0 {w || 500} {h || 500}">
-			{#key lang}
-				{#each data.people as d (d['مسلسل'])}
-					<path
-						d={people[d.path[0]][d.path[1]]}
-						transform="translate({d.x * w - 35} {d.y * h - 71}) scale({d.flip ? '-' : ''}0.3 0.3)"
-						transform-origin="35 71"
-						fill={d['مسلسل'] === selected?.d?.['مسلسل'] ? 'black' : d.hidden === true ? 'rgba(0,0,0,0.05)' : 'rgba(139,0,0,0.5)'}
-						style:pointer-events={d.hidden ? 'none' : 'all'}
-						on:click={(e) => selected = {d, pos: e.target.getBoundingClientRect()}}
-						on:mouseover={(e) => hovered = {d, pos: e.target.getBoundingClientRect()}}
-						on:mouseout={() => hovered = null}
-					/>
+		<div class="names-pagination">
+			<div class="names-pagination-description">
+				Showing {currentPage * COUNT_PER_PAGE + 1}—{Math.min(data.people.length, currentPage * COUNT_PER_PAGE + COUNT_PER_PAGE)} of {data.people.length} names
+			</div>
+			<nav class="names-pagination-buttons">
+				{#each {length: pages} as _, i}
+					<button class:current-page={currentPage === i} on:click={() => currentPage = i}>{i+1}</button>
 				{/each}
-			{/key}
-		</svg>
+			</nav>
+		</div>
+	{:else if w}
+		<canvas bind:this={canvasElement} id="names-canvas" width="{w || 500}" height="{h || 500}"></canvas>
+		<canvas bind:this={canvasTooltip} id="names-canvas-tooltip" width="{w || 500}" height="{h || 500}"></canvas>
+		{#if tooltipPerson}
+		<Tooltip width={w + 24} x={tooltipX} y={tooltipY} pos="bottom">
+			<strong>{tooltipPerson[nameKey]}</strong><button on:click={onCloseTooltip} class="modal-close" title="{t('close')}"><Icon type="close"/></button><br/>
+			{tooltipPerson['sex'] === 'm' ? t('male') : t('female')}, {tooltipPerson['age']} {tooltipPerson['age'] === 1 ? t('year_old') : t('years_old')}
+		</Tooltip>
+		{/if}
 	{/if}
 </div>
 
+{#if data.people.length}
 <footer class="footer">
 	<a href="{domain}" title="{t("vp")}"><Logo/></a>
 	<a href="https://creativecommons.org/licenses/by-nc-nd/4.0/deed.{lang}" title="{t("license")}" target="_blank"><License/></a>
@@ -290,7 +530,11 @@
 	:global(body) {
 		background: #f9f9f9;
 		margin: 0;
-		padding: 12px;
+		padding: 0;
+	}
+	.header,
+	.footer {
+		padding: 0.75rem;
 	}
 	button {
 		cursor: pointer;
@@ -386,31 +630,70 @@
 		margin: 4px 0 12px;
 	}
 	.container {
+		position: relative;
 		width: 100%;
 		margin-top: 12px;
 	}
 	.columns {
 		column-width: 180px;
-		font-size: 0.8em;
-	}
-	.columns > span {
-		display: block;
-		color: darkred;
+		font-size: 0.8rem;
 		line-height: 1;
-		margin-bottom: 4px;
 		break-inside: avoid;
+		padding-left: 0.75rem;
+		padding-right: 0.75rem;
 	}
-	.columns > span:hover {
-		color: #222;
-		-webkit-text-stroke: 1px #222;
-		/* font-weight: bold; */
+	.name-wrapper {
+		position: relative;
 	}
-	svg {
+	.name {
+		padding: 0;
+		border: none;
+		background: transparent;
+		margin: 0;
+		text-align: initial;
+		break-inside: avoid;
+		color: darkred;
+	}
+	.name-unselected {
+		opacity: 0.25;
+	}
+	.name-tooltip {
+		display: none;
+		position: absolute;
+		top: 100%;
+		left: 0;
 		width: 100%;
-		overflow: visible;
+		padding: 0.25rem;
+		background: #222;
+		color: white;
+		z-index: 9999;
 	}
-	svg > path:hover {
-		fill: #222;
+	.name-selected-wrapper .name-tooltip {
+		display: block;
+	}
+	.names-pagination {
+		margin: 2rem 0.75rem;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 1rem;
+	}
+	.names-pagination-buttons {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: center;
+		gap: 0.125rem;
+	}
+	.names-pagination-buttons button {
+		color: darkred;
+		border: 1px solid darkred;
+		background: transparent;
+		margin: 0;
+		width: 2rem;
+	}
+	.names-pagination-buttons button.current-page {
+		color: white;
+		background: darkred;
 	}
 	input[type='text'] {
 		width: auto;
@@ -472,5 +755,10 @@
 	}
 	button.modal-close:hover {
 		color: #ccc;
+	}
+	#names-canvas-tooltip {
+		position: absolute;
+		top: 0;
+		left: 0;
 	}
 </style>
