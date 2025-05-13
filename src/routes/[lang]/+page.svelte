@@ -169,18 +169,22 @@
 
 	const loadFiguresImg = async () => {
 
-		const figure = new Image()
-		figure.src = `./img/figures.png`
-
-		const selected = new Image()
-		selected.src = `./img/figures-selected.png`
-
 		await Promise.all(
 			Array.from(document.images).map(
-				(image) =>
-					new Promise((resolve) => image.addEventListener("load", resolve)),
+				(image) => {
+					return new Promise((resolve) => {
+						if (image?.complete) {
+							resolve()
+						} else {
+							image.addEventListener("load", resolve)
+						}
+					})
+				}
 			),
 		);
+
+		const figure = document.getElementById('elFigures')
+		const selected = document.getElementById('elSelected')
 
 		return {
 			figure,
@@ -440,6 +444,10 @@
 	</nav>
 </header>
 <div class="container" bind:clientWidth={w}>
+	<div style="display: none;">
+		<img src="./img/figures.png" id="elFigures" alt="">
+		<img src="./img/figures-selected.png" id="elSelected" alt="">
+	</div>
 	{#if showNames}
 		<div class="columns">
 			{#each data.people.slice(currentPage * COUNT_PER_PAGE, (currentPage * COUNT_PER_PAGE) + COUNT_PER_PAGE - 1) as d, index}
