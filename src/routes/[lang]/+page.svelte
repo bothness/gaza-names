@@ -46,6 +46,7 @@
 	let isSelected = false
 	let currentPage = 0
 	let selectedNameIndex = -1
+	let pages = 0
 
 	let data = {...config}
 	data.meta.start_date = new Date(data.meta.start_date)
@@ -59,7 +60,10 @@
 				let chunk = chunks.splice(0, 1)
 				return getDataChunk(chunk)
 					.then(r => data.people.push(...r))
-					.then(() => resolve())
+					.then(() => {
+						pages = Math.ceil(data.people.length / COUNT_PER_PAGE)
+						resolve()
+					})
 			}),
 			new Promise(resolve => {
 				loadFiguresImg()
@@ -71,15 +75,16 @@
 			hi = data.max;
 			initCanvas(data, figureImages)
 		}).then(() => {
-			if (supportsFigures) {
-				chunks.forEach(chunk => {
-					getDataChunk(chunk)
-						.then(r => {
-							data.people.push(...r)
+			chunks.forEach(chunk => {
+				getDataChunk(chunk)
+					.then(r => {
+						data.people.push(...r)
+						pages = Math.ceil(data.people.length / COUNT_PER_PAGE)
+						if (supportsFigures) {
 							drawCanvas(r, figureImages)
-						})
-				})
-			}
+						}
+					})
+			})
 		})
 	});
 
@@ -490,7 +495,7 @@
 				Showing {currentPage * COUNT_PER_PAGE + 1}—{Math.min(data.people.length, currentPage * COUNT_PER_PAGE + COUNT_PER_PAGE)} of {data.people.length} names
 			</div>
 			<nav class="names-pagination-buttons">
-				{#each {length: Math.ceil(data.people.length / COUNT_PER_PAGE)} as _, i}
+				{#each {length: pages} as _, i}
 					<button class:current-page={currentPage === i} on:click={() => currentPage = i}>{i+1}</button>
 				{/each}
 			</nav>
