@@ -29,6 +29,14 @@
 	let hi;
 	let w, width, nav, navLeft;
 	let filterText = '';
+	/**
+	 * Mobile devices do not support a <canvas> size large
+	 * enough to render the figures. This flag will turn
+	 * the figures off and render only the names without
+	 * the option to switch to figures if a canvas error
+	 * is detected.
+	 */
+	let supportsFigures = true;
 	let showNames = false;
 	let showFilters = false;
 	let showModal = false;
@@ -63,13 +71,15 @@
 			hi = data.max;
 			initCanvas(data, figureImages)
 		}).then(() => {
-			chunks.forEach(chunk => {
-				getDataChunk(chunk)
-					.then(r => {
-						data.people.push(...r)
-						drawCanvas(r, figureImages)
-					})
-			})
+			if (supportsFigures) {
+				chunks.forEach(chunk => {
+					getDataChunk(chunk)
+						.then(r => {
+							data.people.push(...r)
+							drawCanvas(r, figureImages)
+						})
+				})
+			}
 		})
 	});
 
@@ -200,6 +210,15 @@
 
 		ctx = canvasElement.getContext('2d')
 		ctxTooltip = canvasTooltip.getContext('2d')
+
+		try {
+			ctx.drawImage(figureImages.figure, 0, 0)
+		} catch (e) {
+			supportsFigures = false
+			showNames = true
+			return
+		}
+
 		ctx.reset()
 
 		maxX = w - FIGURE_DRAW_WIDTH
@@ -392,11 +411,15 @@
 					class:button-active={showFilters}
 					use:tooltip><Icon type="{showFilters ? "close" : "filter"}" /></button
 				>{/key}
-			{#key showNames}<button
-					title={showNames ? t('show_people') : t('show_names')}
-					on:click={toggleView}
-					use:tooltip><Icon type={showNames ? 'person' : 'abc'} /></button
-				>{/key}
+			{#key showNames}
+				{#if supportsFigures}
+					<button
+						title={showNames ? t('show_people') : t('show_names')}
+						on:click={toggleView}
+						use:tooltip><Icon type={showNames ? 'person' : 'abc'} /></button
+					>
+				{/if}
+			{/key}
 			<button title={t('about')} on:click={() => (showModal = true)} use:tooltip
 				><Icon type="info" /></button
 			>
@@ -448,7 +471,7 @@
 		<img src="./img/figures.png" id="elFigures" alt="">
 		<img src="./img/figures-selected.png" id="elSelected" alt="">
 	</div>
-	{#if showNames}
+	{#if showNames || !supportsFigures}
 		<div class="columns">
 			{#each data.people.slice(currentPage * COUNT_PER_PAGE, (currentPage * COUNT_PER_PAGE) + COUNT_PER_PAGE - 1) as d, index}
 				<div class="name-wrapper" class:name-selected-wrapper={index === selectedNameIndex}>
