@@ -8,7 +8,9 @@
 
   onMount(() => {
     lang = navigator.language.split("-")[0];
-    goto(`${base}/${lang === "ar" ? "ar" : "en"}.html`);
+    const url = window.location.href.replace(/\/$/, '')
+    window.location = url + '/en.html'
+    // goto(`${base}/${lang === "ar" ? "ar" : "en"}.html`);
   });
 </script>
 
