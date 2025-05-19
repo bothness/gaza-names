@@ -399,10 +399,15 @@
 <header class="header">
 	<div>
 		<h1>{t('title')}</h1>
-		<p class="subtitle">
-			{config.meta.total_killed.toLocaleString()}
-			{t('subtitle')}, <span style:white-space="nowrap">{makeDateRange(data.meta, lang)}</span>
-		</p>
+		<div class="subtitle">
+			{
+				t('subtitle')
+					.replace('{count}', config.meta.total_killed.toLocaleString())
+			}
+		</div>
+		<div class="subtitle-date">
+			{makeDateRange(data.meta, lang)}
+		</div>
 	</div>
 	<nav class="nav" bind:this={nav} use:checkNavLeft>
 		<div class="buttons">
@@ -626,8 +631,14 @@
 	}
 	.subtitle {
 		display: block;
-		font-size: 1.2em;
-		margin: 4px 0 12px;
+		font-size: 1.25em;
+		margin: 4px 0;
+		max-width: 40em;
+		text-wrap: balance;
+	}
+	.subtitle-date {
+		font-size: 1em;
+		margin: 8px 0 1rem;
 	}
 	.container {
 		position: relative;
