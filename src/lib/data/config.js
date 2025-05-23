@@ -79,8 +79,16 @@ export default {
       "ar": "سنة"
     },
     "about_text": {
-      "en": "This visual shows the names of {count} Palestinians killed by Israeli forces in Gaza from {start_date} to {end_date}. This staggering figure includes only those whose names and ages could be identified by the Ministry of Health in Gaza. Thousands of people remain unidentified because their bodies are damaged beyond recognition, they have no surviving family to identify them, or the Ministry of Health in Gaza has been unable to recover their bodies amid the ongoing genocide. \n\nWe will continue to update this visual as more information becomes available.",
-      "ar": "يُظهر هذا الرسم/تُوضح هذه الصورة أسماء {count} فلسطينيًا قُتلوا على يد القوات الإسرائيلية في غزة من {start_date} حتى {end_date}. يشمل هذا الرقم الهائل فقط أولئك الذين تمكنت وزارة الصحة في غزة من تحديد أسمائهم وأعمارهم. لا يزالُ آلاف الأشخاص غير معروفين لأن جثثهم تضررت بشكل لا يُمكن التعرف عليه، أو لعدم وجود أقارب أحياء للتعرف عليهم، أو لأن وزارة الصحة في غزة لم تتمكن من استعادة جثثهم في ظل الإبادة الجماعية المستمرة. سنستمر في تحديث هذا الرسم البياني كلما توفرت معلومات جديدة.\n\n\n\n\n"
+      "en": "This visual shows the names of {count} Palestinians killed by Israeli forces in Gaza from {start_date} to {end_date}. This staggering figure includes only those whose names and ages could be identified by the Ministry of Health in Gaza. Thousands of people remain unidentified because their bodies are damaged beyond recognition, they have no surviving family to identify them, or the Ministry of Health in Gaza has been unable to recover their bodies amid the ongoing genocide.",
+      "ar": "يُظهر هذا الرسم/تُوضح هذه الصورة أسماء {count} فلسطينيًا قُتلوا على يد القوات الإسرائيلية في غزة من {start_date} حتى {end_date}. يشمل هذا الرقم الهائل فقط أولئك الذين تمكنت وزارة الصحة في غزة من تحديد أسمائهم وأعمارهم. لا يزالُ آلاف الأشخاص غير معروفين لأن جثثهم تضررت بشكل لا يُمكن التعرف عليه، أو لعدم وجود أقارب أحياء للتعرف عليهم، أو لأن وزارة الصحة في غزة لم تتمكن من استعادة جثثهم في ظل الإبادة الجماعية المستمرة."
+    },
+    "about_source": {
+      "en": "The names were translated by <a href='https://iraqbodycount.org/'>Iraq Body Count</a>. We are grateful for their work, which they have released as a <a href='https://iraqbodycount.org/pal/ibc_moh_2025-03-23.xlsx'>public spreadsheet</a>.",
+      "ar": "تمت ترجمة الأسماء من قبل مشروع <a href='https://iraqbodycount.org/'>ضحايا حرب العراق</a>. ونحن ممتنون لجهودهم و لجعل <a href='https://iraqbodycount.org/pal/ibc_moh_2025-03-23.xlsx'>جدول البيانات متاحًا للعامة</a>.",
+    },
+    "about_updates": {
+      "en": "We will continue to update this visual as more information becomes available.",
+      "ar": "سنستمر في تحديث هذا الرسم البياني كلما توفرت معلومات جديدة.",
     },
     "aged": {
       "en": "Aged",

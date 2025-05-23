@@ -383,14 +383,18 @@
 					><Icon type="close" /></button
 				>
 				<h2>{t('about')}</h2>
-				<p>{@html
-					formatParagraphs(
-						t('about_text')
+				<p>
+					{t('about_text')
 							.replaceAll('{count}', data?.people.length.toLocaleString() ?? '...')
 							.replaceAll('{start_date}', makeDate(data.meta.start_date))
-							.replaceAll('{end_date}', makeDate(data.meta.end_date))
-					)
-				}</p>
+							.replaceAll('{end_date}', makeDate(data.meta.end_date))}
+				</p>
+				<p>
+					{@html t('about_source')}
+				</p>
+				<p>
+					{t('about_updates')}
+				</p>
 			</div>
 		</div>
 	</div>
